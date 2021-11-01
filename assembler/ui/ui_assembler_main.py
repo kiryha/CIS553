@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'E:\projects\master\CS553\dev\assembler\ui\ui_assembler_main.ui'
 #
-# Created: Mon Nov  1 12:42:07 2021
+# Created: Mon Nov  1 17:05:48 2021
 #      by: pyside-uic 0.2.15 running on PySide 1.2.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -58,16 +58,16 @@ class Ui_Assembler(object):
         self.btnGeneratePDF.setObjectName("btnGeneratePDF")
         self.verticalLayout.addWidget(self.splitter_3)
         self.horizontalLayout.addWidget(self.groupBox)
-        self.groupBox_2 = QtGui.QGroupBox(self.centralwidget)
-        self.groupBox_2.setObjectName("groupBox_2")
-        self.verticalLayout_2 = QtGui.QVBoxLayout(self.groupBox_2)
+        self.grp_images = QtGui.QGroupBox(self.centralwidget)
+        self.grp_images.setObjectName("grp_images")
+        self.verticalLayout_2 = QtGui.QVBoxLayout(self.grp_images)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
-        self.labPage = QtGui.QLabel(self.groupBox_2)
+        self.labPage = QtGui.QLabel(self.grp_images)
         self.labPage.setObjectName("labPage")
         self.verticalLayout_2.addWidget(self.labPage)
         spacerItem = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         self.verticalLayout_2.addItem(spacerItem)
-        self.horizontalLayout.addWidget(self.groupBox_2)
+        self.horizontalLayout.addWidget(self.grp_images)
         Assembler.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(Assembler)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 1108, 21))
@@ -89,6 +89,6 @@ class Ui_Assembler(object):
         self.chbSelected.setText(QtGui.QApplication.translate("Assembler", "SEL", None, QtGui.QApplication.UnicodeUTF8))
         self.btnSendLatest.setText(QtGui.QApplication.translate("Assembler", "Send Latest Versions", None, QtGui.QApplication.UnicodeUTF8))
         self.btnGeneratePDF.setText(QtGui.QApplication.translate("Assembler", "Generate PDF file", None, QtGui.QApplication.UnicodeUTF8))
-        self.groupBox_2.setTitle(QtGui.QApplication.translate("Assembler", "Page Properties", None, QtGui.QApplication.UnicodeUTF8))
+        self.grp_images.setTitle(QtGui.QApplication.translate("Assembler", "Page Properties", None, QtGui.QApplication.UnicodeUTF8))
         self.labPage.setText(QtGui.QApplication.translate("Assembler", "TextLabel", None, QtGui.QApplication.UnicodeUTF8))
 
