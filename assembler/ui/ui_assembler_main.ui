@@ -63,7 +63,7 @@
        <item>
         <widget class="QPushButton" name="btnReload">
          <property name="text">
-          <string>Reload</string>
+          <string>Reload Pages</string>
          </property>
         </widget>
        </item>

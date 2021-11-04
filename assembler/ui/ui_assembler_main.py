@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'E:\projects\master\CS553\dev\assembler\ui\ui_assembler_main.ui'
 #
-# Created: Wed Nov  3 20:47:23 2021
+# Created: Wed Nov  3 23:07:39 2021
 #      by: pyside-uic 0.2.15 running on PySide 1.2.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -89,7 +89,7 @@ class Ui_Assembler(object):
         self.btnDownVersion.setText(QtGui.QApplication.translate("Assembler", "-", None, QtGui.QApplication.UnicodeUTF8))
         self.btnUpVersion.setText(QtGui.QApplication.translate("Assembler", "+", None, QtGui.QApplication.UnicodeUTF8))
         self.btnPublish.setText(QtGui.QApplication.translate("Assembler", "Publish Current Version", None, QtGui.QApplication.UnicodeUTF8))
-        self.btnReload.setText(QtGui.QApplication.translate("Assembler", "Reload", None, QtGui.QApplication.UnicodeUTF8))
+        self.btnReload.setText(QtGui.QApplication.translate("Assembler", "Reload Pages", None, QtGui.QApplication.UnicodeUTF8))
         self.chbSelected.setText(QtGui.QApplication.translate("Assembler", "SEL", None, QtGui.QApplication.UnicodeUTF8))
         self.btnSendLatest.setText(QtGui.QApplication.translate("Assembler", "Send Latest Versions", None, QtGui.QApplication.UnicodeUTF8))
         self.btnGeneratePDF.setText(QtGui.QApplication.translate("Assembler", "Generate PDF file", None, QtGui.QApplication.UnicodeUTF8))

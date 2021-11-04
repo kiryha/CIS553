@@ -44,6 +44,23 @@ def build_database(sql_file_path):
     connection.close()
 
 
+def get_page(page_id):
+
+    connection = sqlite3.connect(sql_file_path)
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT * FROM pages WHERE "
+                   "id=:id ",
+
+                   {'id': page_id})
+
+    page_tuple = cursor.fetchone()
+    connection.close()
+
+    if page_tuple:
+        return Converter.convert_to_page([page_tuple])[0]
+
+
 def get_page_by_number(page_number):
 
     connection = sqlite3.connect(sql_file_path)
@@ -86,7 +103,24 @@ def add_page(page):
     return page
 
 
-def get_published_snapshot(page_id, version):
+def get_published_snapshot(snapshot_id):
+
+    connection = sqlite3.connect(sql_file_path)
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT * FROM published "
+                   "WHERE id=:id ",
+
+                   {'id': snapshot_id})
+
+    snapshot_tuple = cursor.fetchone()
+    connection.close()
+
+    if snapshot_tuple:
+        return Converter.convert_to_snapshot([snapshot_tuple])[0]
+
+
+def get_published_snapshot_by_version(page_id, version):
     """
 
     """
@@ -128,17 +162,6 @@ def add_published_snapshot(snapshot):
 
     connection.commit()
     snapshot.id = cursor.lastrowid
-    #
-    # cursor.execute("UPDATE pages SET "
-    #                "published_id=:published_id "
-    #
-    #                "WHERE "
-    #                "id=:id ",
-    #
-    #                {'published_id': snapshot.id,
-    #                 'id': page_id})
-    #
-    # connection.commit()
     connection.close()
 
     return snapshot
@@ -160,6 +183,16 @@ def set_published_version(page_id, snapshot_id):
 
     connection.commit()
     connection.close()
+
+
+class Page:
+    def __init__(self, page_number):
+
+        self.id = None
+        self.page_number = page_number
+        self.sent_id = None
+        self.published_id = None
+        self.description = ''
 
 
 class VersionSnapshot:
@@ -215,6 +248,7 @@ class Converter:
         return snapshots
 
 
+# STRINGS and FILES
 def parse_page_path(file_path):
     file_path = file_path.replace('\\', '/')
     file_name = file_path.split('/')[-1]
@@ -240,54 +274,19 @@ def get_jpg_path(page_number, version):
     return jpg_path
 
 
+def collect_page_numbers(page_files):
+    """
+    Get list of page numbers without versions
+    """
 
-def read_book_data():
+    page_numbers = []
 
-    with open(book_database, 'r') as file_content:
-        book_data = json.load(file_content)
+    for page_file in page_files:
+        page_number, page_version = parse_page_path(page_file)
+        if page_number not in page_numbers:
+            page_numbers.append(page_number)
 
-    return book_data
-
-
-def write_book_data(book_data):
-
-    with open(book_database, 'w') as file_content:
-        json.dump(book_data, file_content, indent=4)
-
-
-class Page:
-    def __init__(self, page_number):
-
-        self.id = None
-        self.page_number = page_number
-        self.sent_id = None
-        self.published_id = None
-        self.description = ''
-
-        # self.init_page()
-
-    def init_page(self):
-
-        # Get last version
-        page_files = glob.glob('{0}/{1}_*.jpg'.format(root_pages, self.page_number))
-
-        page_versions = []
-        for file_path in page_files:
-            page_number, page_version = parse_page_path(file_path)
-            page_versions.append(int(page_version))
-
-        self.last_version = '{0:02d}'.format(max(page_versions))
-
-        # Get sent version
-        book_data = read_book_data()
-        if self.page_number in book_data.keys():
-            self.sent_version = book_data[self.page_number]['sent_version']
-            self.page_name = book_data[self.page_number]['page_name']
-
-            # if not 'page_name' in book_data[self.page_number].keys():
-            #     book_data[self.page_number]['page_name'] = ''
-            #     with open(book_database, 'w') as file_content:
-            #         json.dump(book_data, file_content, indent=4)
+    return sorted(page_numbers)
 
 
 class Book:
@@ -301,20 +300,6 @@ class Book:
             if page.page_number == page_number:
                 return True
 
-    def collect_page_numbers(self, page_files):
-        """
-        Get list of page numbers without versions
-        """
-
-        page_numbers = []
-
-        for page_file in page_files:
-            page_number, page_version = parse_page_path(page_file)
-            if page_number not in page_numbers:
-                page_numbers.append(page_number)
-
-        return page_numbers
-
     def get_pages(self):
         """
         Get list of pages from JPG folder and fill self.list_pages list
@@ -322,7 +307,7 @@ class Book:
         """
 
         page_files = glob.glob('{0}/*.jpg'.format(root_pages))
-        page_numbers = self.collect_page_numbers(page_files)
+        page_numbers = collect_page_numbers(page_files)
 
         for page_number in page_numbers:
 
@@ -335,27 +320,19 @@ class Book:
 
             self.list_pages.append(page)
 
-    def update_sent_version(self, page):
+    def update_page(self, page):
+        """
+        Update existing page in page list
 
-        for current_page in self.list_pages:
-            if current_page.page_number == page.page_number:
-                current_page.sent_id = page.last_version
+        :param page:
+        :return:
+        """
+        for _page in self.list_pages:
+            if _page.id == page.id:
+                self.list_pages.remove(_page)
+                self.list_pages.append(page)
 
-                # Update JSON
-                book_data = read_book_data()
-                book_data[page.page_number]['sent_version'] = page.last_version
-                write_book_data(book_data)
-
-    def update_name(self, page, page_name):
-
-        for current_page in self.list_pages:
-            if current_page.page_number == page.page_number:
-                current_page.page_name = page_name
-
-                # Update JSON
-                book_data = read_book_data()
-                book_data[page.page_number]['page_name'] = page_name
-                write_book_data(book_data)
+        self.list_pages.sort(key=lambda page: page.page_number)
 
 
 class AlignDelegate(QtGui.QItemDelegate):
@@ -416,7 +393,9 @@ class PagesModel(QtCore.QAbstractTableModel):
                 return page.page_number
 
             if column == 1:
-                return page.published_id
+                snapshot = get_published_snapshot(page.published_id)
+                if snapshot:
+                    return snapshot.version
 
             if column == 2:
                 return page.sent_id
@@ -507,18 +486,24 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
             if self.current_version:
                 version = self.current_version
             else:
-                version = page.published_id
-                if not version:
+                snapshot = get_published_snapshot(page.published_id)
+
+                if not snapshot:
                     version = '01'
+                else:
+                    version = snapshot.version
 
             int_version = int(version) + shift
             version = '{0:02d}'.format(int_version)
             self.current_version = version
 
         else:  # Page cell clicked in UI
-            version = page.published_id
-            if not version:
+            snapshot = get_published_snapshot(page.published_id)
+
+            if not snapshot:
                 version = '01'
+            else:
+                version = snapshot.version
 
             self.current_version = None
 
@@ -538,6 +523,7 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
 
     def publish_page(self):
 
+        # Get selected page
         indexes = self.tabPages.selectionModel().selectedIndexes()
 
         if not indexes:
@@ -550,20 +536,26 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         if not version:
             version = '01'
 
+        # Get path to JPG
         jpg_path = get_jpg_path(page.page_number, version)
         if not jpg_path:
             self.statusbar.showMessage('ERROR! {} version of {} page does not exists!'.format(version, page.page_number))
+            return
 
-        # Check if snapshot of current version exists
-        snapshot = get_published_snapshot(page.id, version)
-
+        # Check if snapshot of current version exists, create if not
+        snapshot = get_published_snapshot_by_version(page.id, version)
         if not snapshot:
             snapshot = add_published_snapshot(VersionSnapshot(page.id, version))
 
+        # Record published version to page
         set_published_version(page.id, snapshot.id)
 
-        self.statusbar.showMessage('Published {} version of page {}'.format(version, page.page_number))
+        # Update pages list with a new page data
+        self.book_model.layoutAboutToBeChanged.emit()
+        self.book.update_page(get_page(page.id))
+        self.book_model.layoutChanged.emit()
 
+        self.statusbar.showMessage('Published {} version of page {}'.format(version, page.page_number))
 
 
 
