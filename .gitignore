@@ -2,3 +2,4 @@
 .idea
 *.pyc
 assembler/data/data.db
+html

@@ -1,7 +1,15 @@
+"""
+Book Assembler
+
+help files setup
+https://github.com/kiryha/AnimationDNA/wiki/06-Tutorials#creating-documentation-with-sphinx
+
+"""
 from PySide import QtCore, QtGui
 import os
 import glob
 import sqlite3
+import webbrowser
 
 from ui import ui_assembler_main
 
@@ -11,7 +19,7 @@ sql_file_path = '{}/data/data.db'.format(assembler_root)
 
 
 # DB
-def build_database(sql_file_path):
+def build_database():
 
     connection = sqlite3.connect(sql_file_path)
     cursor = connection.cursor()
@@ -383,7 +391,7 @@ class BookModel(QtCore.QAbstractTableModel):
         if role == QtCore.Qt.UserRole + 1:
             return page
 
-        if role == QtCore.Qt.DisplayRole: 
+        if role == QtCore.Qt.DisplayRole:
             if column == 0:
                 return page.page_number
 
@@ -450,6 +458,7 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         self.init_ui()
 
         # Setup UI
+        self.actionDocumentation.triggered.connect(self.help)
         self.tabPages.clicked.connect(self.show_page)
 
         self.btnUpVersion.clicked.connect(lambda: self.show_page(1))
@@ -467,6 +476,14 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
 
         self.book_model = BookModel(self.book)
         self.tabPages.setModel(self.book_model)
+
+    def help(self):
+        """
+        Launch help in web browser
+        """
+
+        file_help = '{0}/help/html/index.html'.format(assembler_root)
+        webbrowser.open(file_help)
 
     # Functionality
     def show_page(self, shift=None):

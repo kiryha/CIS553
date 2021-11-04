@@ -1,0 +1,1 @@
+sphinx-build -b html %cd% %cd%\..\html
