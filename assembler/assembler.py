@@ -341,7 +341,7 @@ class AlignDelegate(QtGui.QItemDelegate):
         QtGui.QItemDelegate.paint(self, painter, option, index)
 
 
-class PagesModel(QtCore.QAbstractTableModel):
+class BookModel(QtCore.QAbstractTableModel):
     def __init__(self, book, parent=None):
         QtCore.QAbstractTableModel.__init__(self, parent)
         self.book = book
@@ -468,7 +468,7 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         self.book = Book()
         self.book.get_pages()
 
-        self.book_model = PagesModel(self.book)
+        self.book_model = BookModel(self.book)
         self.tabPages.setModel(self.book_model)
 
     # Functionality
