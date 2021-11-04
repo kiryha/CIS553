@@ -103,6 +103,29 @@ def add_page(page):
     return page
 
 
+def update_page(page):
+
+    connection = sqlite3.connect(sql_file_path)
+    cursor = connection.cursor()
+
+    cursor.execute("UPDATE pages SET "
+                   "page_number=:page_number, "
+                   "published_id=:published_id, "
+                   "sent_id=:sent_id, "
+                   "description=:description "
+
+                   "WHERE id=:id",
+
+                   {'id': page.id,
+                    'page_number': page.page_number,
+                    'published_id': page.published_id,
+                    'sent_id': page.sent_id,
+                    'description': page.description})
+
+    connection.commit()
+    connection.close()
+
+
 def get_published_snapshot(snapshot_id):
 
     connection = sqlite3.connect(sql_file_path)
@@ -165,24 +188,6 @@ def add_published_snapshot(snapshot):
     connection.close()
 
     return snapshot
-
-
-def set_published_version(page_id, snapshot_id):
-
-    connection = sqlite3.connect(sql_file_path)
-    cursor = connection.cursor()
-
-    cursor.execute("UPDATE pages SET "
-                   "published_id=:published_id "
-
-                   "WHERE "
-                   "id=:id ",
-
-                   {'published_id': snapshot_id,
-                    'id': page_id})
-
-    connection.commit()
-    connection.close()
 
 
 class Page:
@@ -293,17 +298,10 @@ class Book:
     def __init__(self):
         self.list_pages = []
 
-    def page_exists(self, page_number):
-
-        # Check if page_number exists in list_pages
-        for page in self.list_pages:
-            if page.page_number == page_number:
-                return True
-
     def get_pages(self):
         """
-        Get list of pages from JPG folder and fill self.list_pages list
-        If page is not in database - create one
+        Get list of pages from JPG folder
+        If page is not in database - create entity in page table
         """
 
         page_files = glob.glob('{0}/*.jpg'.format(root_pages))
@@ -313,8 +311,8 @@ class Book:
 
             page = get_page_by_number(page_number)
 
+            # Create page record in the database
             if not page:
-                # Create page record in the database
                 page = Page(page_number)
                 page = add_page(page)
 
@@ -323,9 +321,6 @@ class Book:
     def update_page(self, page):
         """
         Update existing page in page list
-
-        :param page:
-        :return:
         """
         for _page in self.list_pages:
             if _page.id == page.id:
@@ -388,7 +383,7 @@ class BookModel(QtCore.QAbstractTableModel):
         if role == QtCore.Qt.UserRole + 1:
             return page
 
-        if role == QtCore.Qt.DisplayRole:  # Fill table data to DISPLAY
+        if role == QtCore.Qt.DisplayRole: 
             if column == 0:
                 return page.page_number
 
@@ -409,7 +404,7 @@ class BookModel(QtCore.QAbstractTableModel):
 
     def setData(self, index, cell_data, role=QtCore.Qt.EditRole):
         """
-        When table cell is edited
+        When "Description" table cell is edited
         """
 
         row = index.row()
@@ -419,7 +414,9 @@ class BookModel(QtCore.QAbstractTableModel):
         if role == QtCore.Qt.EditRole:
 
             if column == 3:
-                self.book.update_name(page, cell_data)
+                page.description = cell_data
+                update_page(page)
+                self.book.update_page(page)
 
             return True
 
@@ -441,7 +438,7 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         # Data
         self.book = None
         self.book_model = None
-        self.current_version = None  # UI [ +/- ] counter for clicked page
+        self.current_version = None  # UI [ +/- ] counter for selected page
 
         # # # Google Drive
         # auth = GoogleAuth()
@@ -478,10 +475,12 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         Show higher or lover versions with [ + ] or [ - ] buttons
         """
 
+        # Get selected page
         indexes = self.tabPages.selectionModel().selectedIndexes()
         page = indexes[0].data(QtCore.Qt.UserRole + 1)
 
-        if type(shift) == int:  # [ + ] or [ - ] buttons
+        # If [ + ] or [ - ] buttons pressed, get next or previous version
+        if type(shift) == int:
 
             if self.current_version:
                 version = self.current_version
@@ -497,7 +496,8 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
             version = '{0:02d}'.format(int_version)
             self.current_version = version
 
-        else:  # Page cell clicked in UI
+        # If page cell clicked in UI, get published version
+        else:
             snapshot = get_published_snapshot(page.published_id)
 
             if not snapshot:
@@ -519,9 +519,14 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         height = self.grp_images.height() - 40  # Get height of groupBox parent widget and scale JPG to fit it
         self.labPage.resize(height/1.295, height)
         self.labPage.setPixmap(pixmap.scaled(self.labPage.size(), QtCore.Qt.IgnoreAspectRatio))
+
+        # Report page number and version shown
         self.statusbar.showMessage('Loaded page {0} version {1}'.format(page.page_number, version))
 
     def publish_page(self):
+        """
+        Publish current version for selected page
+        """
 
         # Get selected page
         indexes = self.tabPages.selectionModel().selectedIndexes()
@@ -532,6 +537,7 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
 
         page = indexes[0].data(QtCore.Qt.UserRole + 1)
 
+        # Get current version
         version = self.current_version
         if not version:
             version = '01'
@@ -548,13 +554,15 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
             snapshot = add_published_snapshot(VersionSnapshot(page.id, version))
 
         # Record published version to page
-        set_published_version(page.id, snapshot.id)
+        page.published_id = snapshot.id
+        update_page(page)
 
         # Update pages list with a new page data
         self.book_model.layoutAboutToBeChanged.emit()
         self.book.update_page(get_page(page.id))
         self.book_model.layoutChanged.emit()
 
+        # Report
         self.statusbar.showMessage('Published {} version of page {}'.format(version, page.page_number))
 
 
@@ -672,8 +680,8 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
 
 
 if __name__ == "__main__":
-    # Init database
 
+    # Init database
     if not os.path.exists(sql_file_path):
         build_database(sql_file_path)
 

@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'E:\projects\master\CS553\dev\assembler\ui\ui_assembler_main.ui'
 #
-# Created: Wed Nov  3 23:07:39 2021
+# Created: Thu Nov  4 09:25:26 2021
 #      by: pyside-uic 0.2.15 running on PySide 1.2.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from PySide import QtCore, QtGui
 class Ui_Assembler(object):
     def setupUi(self, Assembler):
         Assembler.setObjectName("Assembler")
-        Assembler.resize(1108, 892)
+        Assembler.resize(1077, 1008)
         self.centralwidget = QtGui.QWidget(Assembler)
         self.centralwidget.setObjectName("centralwidget")
         self.horizontalLayout = QtGui.QHBoxLayout(self.centralwidget)
@@ -66,6 +66,7 @@ class Ui_Assembler(object):
         self.verticalLayout_2 = QtGui.QVBoxLayout(self.grp_images)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.labPage = QtGui.QLabel(self.grp_images)
+        self.labPage.setText("")
         self.labPage.setObjectName("labPage")
         self.verticalLayout_2.addWidget(self.labPage)
         spacerItem = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
@@ -73,12 +74,24 @@ class Ui_Assembler(object):
         self.horizontalLayout.addWidget(self.grp_images)
         Assembler.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(Assembler)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1108, 21))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1077, 21))
         self.menubar.setObjectName("menubar")
+        self.menuHelp = QtGui.QMenu(self.menubar)
+        self.menuHelp.setObjectName("menuHelp")
+        self.menuEdit = QtGui.QMenu(self.menubar)
+        self.menuEdit.setObjectName("menuEdit")
         Assembler.setMenuBar(self.menubar)
         self.statusbar = QtGui.QStatusBar(Assembler)
         self.statusbar.setObjectName("statusbar")
         Assembler.setStatusBar(self.statusbar)
+        self.actionDocumentation = QtGui.QAction(Assembler)
+        self.actionDocumentation.setObjectName("actionDocumentation")
+        self.actionSet_Project = QtGui.QAction(Assembler)
+        self.actionSet_Project.setObjectName("actionSet_Project")
+        self.menuHelp.addAction(self.actionDocumentation)
+        self.menuEdit.addAction(self.actionSet_Project)
+        self.menubar.addAction(self.menuEdit.menuAction())
+        self.menubar.addAction(self.menuHelp.menuAction())
 
         self.retranslateUi(Assembler)
         QtCore.QMetaObject.connectSlotsByName(Assembler)
@@ -94,5 +107,8 @@ class Ui_Assembler(object):
         self.btnSendLatest.setText(QtGui.QApplication.translate("Assembler", "Send Latest Versions", None, QtGui.QApplication.UnicodeUTF8))
         self.btnGeneratePDF.setText(QtGui.QApplication.translate("Assembler", "Generate PDF file", None, QtGui.QApplication.UnicodeUTF8))
         self.grp_images.setTitle(QtGui.QApplication.translate("Assembler", "Page Properties", None, QtGui.QApplication.UnicodeUTF8))
-        self.labPage.setText(QtGui.QApplication.translate("Assembler", "TextLabel", None, QtGui.QApplication.UnicodeUTF8))
+        self.menuHelp.setTitle(QtGui.QApplication.translate("Assembler", "Help", None, QtGui.QApplication.UnicodeUTF8))
+        self.menuEdit.setTitle(QtGui.QApplication.translate("Assembler", "Edit", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionDocumentation.setText(QtGui.QApplication.translate("Assembler", "Documentation", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionSet_Project.setText(QtGui.QApplication.translate("Assembler", "Set Project", None, QtGui.QApplication.UnicodeUTF8))
 
