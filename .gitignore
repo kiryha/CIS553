@@ -1,3 +1,4 @@
 # Skip PyCharm
 .idea
 *.pyc
+assembler/data/data.db

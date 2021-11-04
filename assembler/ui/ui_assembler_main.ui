@@ -54,6 +54,13 @@
         </widget>
        </item>
        <item>
+        <widget class="QPushButton" name="btnPublish">
+         <property name="text">
+          <string>Publish Current Version</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QPushButton" name="btnReload">
          <property name="text">
           <string>Reload</string>

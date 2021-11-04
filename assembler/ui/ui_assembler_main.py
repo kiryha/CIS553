@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'E:\projects\master\CS553\dev\assembler\ui\ui_assembler_main.ui'
 #
-# Created: Mon Nov  1 17:05:48 2021
+# Created: Wed Nov  3 20:47:23 2021
 #      by: pyside-uic 0.2.15 running on PySide 1.2.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -34,6 +34,9 @@ class Ui_Assembler(object):
         self.btnUpVersion = QtGui.QPushButton(self.splitter)
         self.btnUpVersion.setObjectName("btnUpVersion")
         self.verticalLayout.addWidget(self.splitter)
+        self.btnPublish = QtGui.QPushButton(self.groupBox)
+        self.btnPublish.setObjectName("btnPublish")
+        self.verticalLayout.addWidget(self.btnPublish)
         self.btnReload = QtGui.QPushButton(self.groupBox)
         self.btnReload.setObjectName("btnReload")
         self.verticalLayout.addWidget(self.btnReload)
@@ -85,6 +88,7 @@ class Ui_Assembler(object):
         self.groupBox.setTitle(QtGui.QApplication.translate("Assembler", "Pages", None, QtGui.QApplication.UnicodeUTF8))
         self.btnDownVersion.setText(QtGui.QApplication.translate("Assembler", "-", None, QtGui.QApplication.UnicodeUTF8))
         self.btnUpVersion.setText(QtGui.QApplication.translate("Assembler", "+", None, QtGui.QApplication.UnicodeUTF8))
+        self.btnPublish.setText(QtGui.QApplication.translate("Assembler", "Publish Current Version", None, QtGui.QApplication.UnicodeUTF8))
         self.btnReload.setText(QtGui.QApplication.translate("Assembler", "Reload", None, QtGui.QApplication.UnicodeUTF8))
         self.chbSelected.setText(QtGui.QApplication.translate("Assembler", "SEL", None, QtGui.QApplication.UnicodeUTF8))
         self.btnSendLatest.setText(QtGui.QApplication.translate("Assembler", "Send Latest Versions", None, QtGui.QApplication.UnicodeUTF8))

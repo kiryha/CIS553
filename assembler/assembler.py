@@ -1,11 +1,219 @@
 from PySide import QtCore, QtGui
 import os
 import glob
+import sqlite3
 
 from ui import ui_assembler_main
 
+assembler_root = os.path.dirname(os.path.abspath(__file__))
+root_pages = 'E:/projects/workbook/pages/jpg'
+sql_file_path = '{}/data/data.db'.format(assembler_root)
 
-root_pages = 'E:/projects/workbook_A/PAGES/JPG'
+
+# DB
+def build_database(sql_file_path):
+
+    connection = sqlite3.connect(sql_file_path)
+    cursor = connection.cursor()
+
+    cursor.execute('''CREATE TABLE pages (
+                        id integer primary key autoincrement,
+                        page_number text,
+                        published_id integer,
+                        sent_id integer,
+                        description text,
+                        FOREIGN KEY(published_id) REFERENCES published(id)
+                        FOREIGN KEY(sent_id) REFERENCES sent(id)
+                        )''')
+
+    cursor.execute('''CREATE TABLE published (
+                        id integer primary key autoincrement,
+                        page_id integer,
+                        version text,
+                        description text
+                        )''')
+
+    cursor.execute('''CREATE TABLE sent (
+                        id integer primary key autoincrement,
+                        page_id integer,
+                        version text,
+                        description text
+                        )''')
+
+    connection.commit()
+    connection.close()
+
+
+def get_page_by_number(page_number):
+
+    connection = sqlite3.connect(sql_file_path)
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT * FROM pages WHERE "
+                   "page_number=:page_number ",
+
+                   {'page_number': page_number})
+
+    page_tuple = cursor.fetchone()
+    connection.close()
+
+    if page_tuple:
+        return Converter.convert_to_page([page_tuple])[0]
+
+
+def add_page(page):
+
+    connection = sqlite3.connect(sql_file_path)
+    cursor = connection.cursor()
+
+    cursor.execute("INSERT INTO pages VALUES ("
+                   ":id,"
+                   ":page_number,"
+                   ":published_id,"
+                   ":sent_id,"
+                   ":description)",
+
+                   {'id': cursor.lastrowid,
+                    'page_number': page.page_number,
+                    'published_id': page.published_id,
+                    'sent_id': page.sent_id,
+                    'description': page.description})
+
+    connection.commit()
+    page.id = cursor.lastrowid  # Add database ID to the asset object
+    connection.close()
+
+    return page
+
+
+def get_published_snapshot(page_id, version):
+    """
+
+    """
+
+    connection = sqlite3.connect(sql_file_path)
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT * FROM published "
+                   "WHERE page_id=:page_id "
+                   "AND version=:version",
+
+                   {'page_id': page_id,
+                    'version': version})
+
+    snapshot_tuple = cursor.fetchone()
+    connection.close()
+
+    if snapshot_tuple:
+        return Converter.convert_to_snapshot([snapshot_tuple])[0]
+
+
+def add_published_snapshot(snapshot):
+    """
+    """
+
+    connection = sqlite3.connect(sql_file_path)
+    cursor = connection.cursor()
+
+    cursor.execute("INSERT INTO published VALUES ("
+                   ":id,"
+                   ":page_id,"
+                   ":version,"
+                   ":description)",
+
+                   {'id': cursor.lastrowid,
+                    'page_id': snapshot.page_id,
+                    'version': snapshot.version,
+                    'description': snapshot.description})
+
+    connection.commit()
+    snapshot.id = cursor.lastrowid
+    #
+    # cursor.execute("UPDATE pages SET "
+    #                "published_id=:published_id "
+    #
+    #                "WHERE "
+    #                "id=:id ",
+    #
+    #                {'published_id': snapshot.id,
+    #                 'id': page_id})
+    #
+    # connection.commit()
+    connection.close()
+
+    return snapshot
+
+
+def set_published_version(page_id, snapshot_id):
+
+    connection = sqlite3.connect(sql_file_path)
+    cursor = connection.cursor()
+
+    cursor.execute("UPDATE pages SET "
+                   "published_id=:published_id "
+
+                   "WHERE "
+                   "id=:id ",
+
+                   {'published_id': snapshot_id,
+                    'id': page_id})
+
+    connection.commit()
+    connection.close()
+
+
+class VersionSnapshot:
+    """
+    Published or sent version of the page file
+    """
+    def __init__(self, page_id, version):
+        self.id = None
+        self.page_id = page_id
+        self.version = version
+        self.description = ''
+
+
+class Converter:
+    """
+    Convert data from DB to objects
+    """
+
+    @staticmethod
+    def convert_to_page(page_tuples):
+        """
+        Convert list of page tuples to list of Page() objects
+        (id, page_number, published_id, sent_id, description)
+        """
+
+        pages = []
+
+        for page_tuple in page_tuples:
+            page = Page(page_tuple[1])
+            page.id = page_tuple[0]
+            page.published_id = page_tuple[2]
+            page.sent_id = page_tuple[3]
+            page.description = page_tuple[4]
+            pages.append(page)
+
+        return pages
+
+    @staticmethod
+    def convert_to_snapshot(snapshot_tuples):
+        """
+        (id, page_id, version, description)
+        :param snapshot_tuples:
+        :return:
+        """
+
+        snapshots = []
+        for snapshot_tuple in snapshot_tuples:
+            snapshot = VersionSnapshot(snapshot_tuple[1], snapshot_tuple[2])
+            snapshot.id = snapshot_tuple[0]
+            snapshot.description = snapshot_tuple[3]
+            snapshots.append(snapshot)
+
+        return snapshots
+
 
 def parse_page_path(file_path):
     file_path = file_path.replace('\\', '/')
@@ -14,6 +222,23 @@ def parse_page_path(file_path):
     page_number, page_version = page_name.split('_')
 
     return page_number, page_version
+
+
+def get_jpg_path(page_number, version):
+    """
+    Get page file path by page number and version
+    :param page_number:
+    :param version:
+    :return: string path to page file, None if JPG does not exists
+    """
+
+    jpg_path = '{0}/{1}_{2}.jpg'.format(root_pages, page_number, version)
+
+    if not os.path.exists(jpg_path):
+        return
+
+    return jpg_path
+
 
 
 def read_book_data():
@@ -33,10 +258,11 @@ def write_book_data(book_data):
 class Page:
     def __init__(self, page_number):
 
+        self.id = None
         self.page_number = page_number
-        self.last_version = '01'
-        self.sent_version = '01'
-        self.page_name = ''
+        self.sent_id = None
+        self.published_id = None
+        self.description = ''
 
         # self.init_page()
 
@@ -75,30 +301,45 @@ class Book:
             if page.page_number == page_number:
                 return True
 
+    def collect_page_numbers(self, page_files):
+        """
+        Get list of page numbers without versions
+        """
+
+        page_numbers = []
+
+        for page_file in page_files:
+            page_number, page_version = parse_page_path(page_file)
+            if page_number not in page_numbers:
+                page_numbers.append(page_number)
+
+        return page_numbers
+
     def get_pages(self):
+        """
+        Get list of pages from JPG folder and fill self.list_pages list
+        If page is not in database - create one
+        """
 
         page_files = glob.glob('{0}/*.jpg'.format(root_pages))
-        # book_data = read_book_data()
-        page_data = {'sent_version': '', 'page_name': ''}
+        page_numbers = self.collect_page_numbers(page_files)
 
-        for file_path in page_files:
+        for page_number in page_numbers:
 
-            # Update Book object
-            page_number, page_version = parse_page_path(file_path)
-            if not self.page_exists(page_number):
+            page = get_page_by_number(page_number)
+
+            if not page:
+                # Create page record in the database
                 page = Page(page_number)
-                self.list_pages.append(page)
+                page = add_page(page)
 
-            # # Update JSON
-            # if not page_number in book_data.keys():
-            #     book_data[page_number] = page_data
-            #     write_book_data(book_data)
+            self.list_pages.append(page)
 
     def update_sent_version(self, page):
 
         for current_page in self.list_pages:
             if current_page.page_number == page.page_number:
-                current_page.sent_version = page.last_version
+                current_page.sent_id = page.last_version
 
                 # Update JSON
                 book_data = read_book_data()
@@ -127,7 +368,7 @@ class PagesModel(QtCore.QAbstractTableModel):
     def __init__(self, book, parent=None):
         QtCore.QAbstractTableModel.__init__(self, parent)
         self.book = book
-        self.header = ['  Page  ', '  Last ', '  Sent ', '  Name  ']  # , '  Notes  '
+        self.header = ['  Page  ', '  Pub ', '  Sent ', '  Description  ']  # , '  Notes  '
 
     # Build-in functions
     def flags(self, index):
@@ -164,7 +405,7 @@ class PagesModel(QtCore.QAbstractTableModel):
 
         if role == QtCore.Qt.ForegroundRole:
             if column == 2:
-                if page.last_version != page.sent_version:
+                if page.published_id != page.sent_id:
                     return QtGui.QBrush(QtGui.QColor('#c90404'))
 
         if role == QtCore.Qt.UserRole + 1:
@@ -175,17 +416,17 @@ class PagesModel(QtCore.QAbstractTableModel):
                 return page.page_number
 
             if column == 1:
-                return page.last_version
+                return page.published_id
 
             if column == 2:
-                return page.sent_version
+                return page.sent_id
 
             if column == 3:
-                return page.page_name
+                return page.description
 
         if role == QtCore.Qt.EditRole:
             if column == 3:
-                return page.page_name
+                return page.description
 
     def setData(self, index, cell_data, role=QtCore.Qt.EditRole):
         """
@@ -219,10 +460,9 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         self.tabPages.setItemDelegate(AlignDelegate())
 
         # Data
-        self.page_files = 'E:/projects/workbook_A/PAGES/JPG'
-        self.book_data = None
+        self.book = None
         self.book_model = None
-        self.page_version = None
+        self.current_version = None  # UI [ +/- ] counter for clicked page
 
         # # # Google Drive
         # auth = GoogleAuth()
@@ -238,17 +478,18 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
 
         self.btnUpVersion.clicked.connect(lambda: self.show_page(1))
         self.btnDownVersion.clicked.connect(lambda: self.show_page(-1))
-        # self.btnReload.clicked.connect(self.init_ui)
+        self.btnPublish.clicked.connect(self.publish_page)
+        self.btnReload.clicked.connect(self.init_ui)
         # self.btnSendLatest.clicked.connect(self.send_latest)
         # self.btnGeneratePDF.clicked.connect(self.generate_pdf)
 
     # UI
     def init_ui(self):
 
-        self.book_data = Book()
-        self.book_data.get_pages()
+        self.book = Book()
+        self.book.get_pages()
 
-        self.book_model = PagesModel(self.book_data)
+        self.book_model = PagesModel(self.book)
         self.tabPages.setModel(self.book_model)
 
     # Functionality
@@ -263,48 +504,83 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
 
         if type(shift) == int:  # [ + ] or [ - ] buttons
 
-            if self.page_version:
-                version = self.page_version
+            if self.current_version:
+                version = self.current_version
             else:
-                version = page.last_version
+                version = page.published_id
+                if not version:
+                    version = '01'
 
-            # Handle edge cases. Need to implement smarter way
             int_version = int(version) + shift
-            if int_version <= 0 or int_version >= 99:
-                return
-
             version = '{0:02d}'.format(int_version)
-            self.page_version = version
+            self.current_version = version
 
-        else:
-            version = page.last_version
-            self.page_version = None
+        else:  # Page cell clicked in UI
+            version = page.published_id
+            if not version:
+                version = '01'
 
-        jpg_path = '{0}/{1}_{2}.jpg'.format(root_pages, page.page_number, version)
+            self.current_version = None
 
-        if os.path.exists(jpg_path):
-            pixmap = QtGui.QPixmap(jpg_path)
-            height = self.grp_images.height() - 30
-            self.labPage.resize(height/1.295, height)
-            self.labPage.setPixmap(pixmap.scaled(self.labPage.size(), QtCore.Qt.IgnoreAspectRatio))
-            print '>> Loaded {} version.'.format(version)
+        # Show JPG
+        jpg_path = get_jpg_path(page.page_number, version)
 
-        else:
-            # If version does not exists recursively find existing version
-            self.show_page(shift)
+        if not jpg_path:
+            self.labPage.setPixmap(None)
+            self.statusbar.showMessage('Page {0} version {1} does not exists!'.format(page.page_number, version))
+            return
+
+        pixmap = QtGui.QPixmap(jpg_path)
+        height = self.grp_images.height() - 40  # Get height of groupBox parent widget and scale JPG to fit it
+        self.labPage.resize(height/1.295, height)
+        self.labPage.setPixmap(pixmap.scaled(self.labPage.size(), QtCore.Qt.IgnoreAspectRatio))
+        self.statusbar.showMessage('Loaded page {0} version {1}'.format(page.page_number, version))
+
+    def publish_page(self):
+
+        indexes = self.tabPages.selectionModel().selectedIndexes()
+
+        if not indexes:
+            self.statusbar.showMessage('ERROR! Select page to publish!')
+            return
+
+        page = indexes[0].data(QtCore.Qt.UserRole + 1)
+
+        version = self.current_version
+        if not version:
+            version = '01'
+
+        jpg_path = get_jpg_path(page.page_number, version)
+        if not jpg_path:
+            self.statusbar.showMessage('ERROR! {} version of {} page does not exists!'.format(version, page.page_number))
+
+        # Check if snapshot of current version exists
+        snapshot = get_published_snapshot(page.id, version)
+
+        if not snapshot:
+            snapshot = add_published_snapshot(VersionSnapshot(page.id, version))
+
+        set_published_version(page.id, snapshot.id)
+
+        self.statusbar.showMessage('Published {} version of page {}'.format(version, page.page_number))
+
+
+
+
+
 
     def copy_file_locally(self, page):
         """
         Copy versioned files to "to_layout" folder without version
         """
 
-        file_src = '{0}/{1}_{2}.jpg'.format(root_pages, page.page_number, page.last_version)
+        file_src = '{0}/{1}_{2}.jpg'.format(root_pages, page.page_number, page.published_id)
         file_out = '{0}/to_layout/{1}.jpg'.format(root_pages, page.page_number)
 
         copyfile(file_src, file_out)
 
         self.book_model.layoutAboutToBeChanged.emit()
-        self.book_data.update_sent_version(page)
+        self.book.update_sent_version(page)
         self.book_model.layoutChanged.emit()
 
         return file_out
@@ -353,7 +629,7 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         existing_pages = self.google_drive.ListFile({'q': "'{0}' in parents and trashed=false".format(self.jpeg_folder)
                                                      }).GetList()
 
-        for page in self.book_data.list_pages:
+        for page in self.book.list_pages:
 
             # Skip unselected pages
             if self.chbSelected.isChecked():
@@ -361,7 +637,7 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
                     continue
 
             # Skip versions without update
-            if page.last_version == page.sent_version:
+            if page.published_id == page.sent_id:
                 continue
 
             file_out = self.copy_file_locally(page)
@@ -388,12 +664,12 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
 
         print '>> Building PDF file...'
 
-        for num, page in enumerate(self.book_data.list_pages):
+        for num, page in enumerate(self.book.list_pages):
 
             if not num == 0:  # Make next page
                 pdf_file.showPage()
 
-            version = page.last_version
+            version = page.published_id
             jpg_path = '{0}/{1}_{2}.jpg'.format(root_pages, page.page_number, version)
             pdf_file.drawImage(jpg_path, 0, 0, size_x, size_y)
             self.add_page_number(pdf_file, num, page)
@@ -404,6 +680,11 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
 
 
 if __name__ == "__main__":
+    # Init database
+
+    if not os.path.exists(sql_file_path):
+        build_database(sql_file_path)
+
     app = QtGui.QApplication([])
     ketamine = Assembler()
     ketamine.show()
