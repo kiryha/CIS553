@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'E:\projects\master\CS553\dev\assembler\ui\ui_assembler_main.ui'
 #
-# Created: Thu Nov  4 09:25:26 2021
+# Created: Thu Nov  4 18:23:15 2021
 #      by: pyside-uic 0.2.15 running on PySide 1.2.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from PySide import QtCore, QtGui
 class Ui_Assembler(object):
     def setupUi(self, Assembler):
         Assembler.setObjectName("Assembler")
-        Assembler.resize(1077, 1008)
+        Assembler.resize(810, 708)
         self.centralwidget = QtGui.QWidget(Assembler)
         self.centralwidget.setObjectName("centralwidget")
         self.horizontalLayout = QtGui.QHBoxLayout(self.centralwidget)
@@ -47,14 +47,14 @@ class Ui_Assembler(object):
         self.chbSelected.setMaximumSize(QtCore.QSize(100, 16777215))
         self.chbSelected.setChecked(True)
         self.chbSelected.setObjectName("chbSelected")
-        self.btnSendLatest = QtGui.QPushButton(self.splitter_2)
-        self.btnSendLatest.setObjectName("btnSendLatest")
+        self.btnSendPublished = QtGui.QPushButton(self.splitter_2)
+        self.btnSendPublished.setObjectName("btnSendPublished")
         self.verticalLayout.addWidget(self.splitter_2)
         self.splitter_3 = QtGui.QSplitter(self.groupBox)
         self.splitter_3.setOrientation(QtCore.Qt.Horizontal)
         self.splitter_3.setObjectName("splitter_3")
         self.linPDFVersion = QtGui.QLineEdit(self.splitter_3)
-        self.linPDFVersion.setMaximumSize(QtCore.QSize(100, 16777215))
+        self.linPDFVersion.setMaximumSize(QtCore.QSize(75, 16777215))
         self.linPDFVersion.setAlignment(QtCore.Qt.AlignCenter)
         self.linPDFVersion.setObjectName("linPDFVersion")
         self.btnGeneratePDF = QtGui.QPushButton(self.splitter_3)
@@ -74,7 +74,7 @@ class Ui_Assembler(object):
         self.horizontalLayout.addWidget(self.grp_images)
         Assembler.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(Assembler)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1077, 21))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 810, 21))
         self.menubar.setObjectName("menubar")
         self.menuHelp = QtGui.QMenu(self.menubar)
         self.menuHelp.setObjectName("menuHelp")
@@ -104,9 +104,10 @@ class Ui_Assembler(object):
         self.btnPublish.setText(QtGui.QApplication.translate("Assembler", "Publish Current Version", None, QtGui.QApplication.UnicodeUTF8))
         self.btnReload.setText(QtGui.QApplication.translate("Assembler", "Reload Pages", None, QtGui.QApplication.UnicodeUTF8))
         self.chbSelected.setText(QtGui.QApplication.translate("Assembler", "SEL", None, QtGui.QApplication.UnicodeUTF8))
-        self.btnSendLatest.setText(QtGui.QApplication.translate("Assembler", "Send Latest Versions", None, QtGui.QApplication.UnicodeUTF8))
+        self.btnSendPublished.setText(QtGui.QApplication.translate("Assembler", "Send Published Versions", None, QtGui.QApplication.UnicodeUTF8))
+        self.linPDFVersion.setText(QtGui.QApplication.translate("Assembler", "01", None, QtGui.QApplication.UnicodeUTF8))
         self.btnGeneratePDF.setText(QtGui.QApplication.translate("Assembler", "Generate PDF file", None, QtGui.QApplication.UnicodeUTF8))
-        self.grp_images.setTitle(QtGui.QApplication.translate("Assembler", "Page Properties", None, QtGui.QApplication.UnicodeUTF8))
+        self.grp_images.setTitle(QtGui.QApplication.translate("Assembler", "Page Prewiew", None, QtGui.QApplication.UnicodeUTF8))
         self.menuHelp.setTitle(QtGui.QApplication.translate("Assembler", "Help", None, QtGui.QApplication.UnicodeUTF8))
         self.menuEdit.setTitle(QtGui.QApplication.translate("Assembler", "Edit", None, QtGui.QApplication.UnicodeUTF8))
         self.actionDocumentation.setText(QtGui.QApplication.translate("Assembler", "Documentation", None, QtGui.QApplication.UnicodeUTF8))

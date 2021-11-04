@@ -1,20 +1,23 @@
 """
 Book Assembler
-
-help files setup
-https://github.com/kiryha/AnimationDNA/wiki/06-Tutorials#creating-documentation-with-sphinx
-
 """
-from PySide import QtCore, QtGui
+
 import os
 import glob
 import sqlite3
 import webbrowser
+from shutil import copyfile
+from reportlab.pdfgen import canvas
+from PySide import QtCore, QtGui
 
 from ui import ui_assembler_main
 
+
 assembler_root = os.path.dirname(os.path.abspath(__file__))
-root_pages = 'E:/projects/workbook/pages/jpg'
+project_root = 'E:/projects/workbook'
+versioned_pages = '{0}/pages/jpg'.format(project_root)
+final_pages = '{0}/pages/jpg/final'.format(project_root)
+pdf_files = '{0}/pages/pdf'.format(project_root)
 sql_file_path = '{}/data/data.db'.format(assembler_root)
 
 
@@ -151,6 +154,23 @@ def get_published_snapshot(snapshot_id):
         return Converter.convert_to_snapshot([snapshot_tuple])[0]
 
 
+def get_sent_snapshot(snapshot_id):
+
+    connection = sqlite3.connect(sql_file_path)
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT * FROM sent "
+                   "WHERE id=:id ",
+
+                   {'id': snapshot_id})
+
+    snapshot_tuple = cursor.fetchone()
+    connection.close()
+
+    if snapshot_tuple:
+        return Converter.convert_to_snapshot([snapshot_tuple])[0]
+
+
 def get_published_snapshot_by_version(page_id, version):
     """
 
@@ -160,6 +180,28 @@ def get_published_snapshot_by_version(page_id, version):
     cursor = connection.cursor()
 
     cursor.execute("SELECT * FROM published "
+                   "WHERE page_id=:page_id "
+                   "AND version=:version",
+
+                   {'page_id': page_id,
+                    'version': version})
+
+    snapshot_tuple = cursor.fetchone()
+    connection.close()
+
+    if snapshot_tuple:
+        return Converter.convert_to_snapshot([snapshot_tuple])[0]
+
+
+def get_sent_snapshot_by_version(page_id, version):
+    """
+
+    """
+
+    connection = sqlite3.connect(sql_file_path)
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT * FROM sent "
                    "WHERE page_id=:page_id "
                    "AND version=:version",
 
@@ -198,14 +240,51 @@ def add_published_snapshot(snapshot):
     return snapshot
 
 
+def add_sent_snapshot(snapshot):
+    """
+    """
+
+    connection = sqlite3.connect(sql_file_path)
+    cursor = connection.cursor()
+
+    cursor.execute("INSERT INTO sent VALUES ("
+                   ":id,"
+                   ":page_id,"
+                   ":version,"
+                   ":description)",
+
+                   {'id': cursor.lastrowid,
+                    'page_id': snapshot.page_id,
+                    'version': snapshot.version,
+                    'description': snapshot.description})
+
+    connection.commit()
+    snapshot.id = cursor.lastrowid
+    connection.close()
+
+    return snapshot
+
+
 class Page:
     def __init__(self, page_number):
 
         self.id = None
         self.page_number = page_number
-        self.sent_id = None
         self.published_id = None
+        self.sent_id = None
         self.description = ''
+
+    def get_published_version(self):
+
+        snapshot = get_published_snapshot(self.published_id)
+        if snapshot:
+            return snapshot.version
+
+    def get_sent_version(self):
+
+        snapshot = get_sent_snapshot(self.sent_id)
+        if snapshot:
+            return snapshot.version
 
 
 class VersionSnapshot:
@@ -261,6 +340,56 @@ class Converter:
         return snapshots
 
 
+# PDF
+def add_page_number(pdf_file, num, page):
+    """
+    Draw page number on each pdf page
+
+    :param pdf_file:
+    :param num:
+    :param page:
+    :return:
+    """
+
+    pos_x = 20
+    if num % 2 != 0:
+        pos_x = 2450
+
+    pdf_file.setFont('Helvetica', 60)
+    pdf_file.drawString(pos_x, 20, page.page_number)
+
+
+def generate_pdf(book, path_pdf):
+    """
+    Generate PDF file from book pages
+
+    :param book:
+    :param path_pdf:
+    :return:
+    """
+
+    size_x = 2598
+    size_y = 3366
+    pdf_file = canvas.Canvas(path_pdf, pagesize=(size_x, size_y))
+    pdf_file.setTitle('The Secret Code of Superheroes')
+
+    for num, page in enumerate(book.list_pages):
+
+        if not num == 0:  # Make next page
+            pdf_file.showPage()
+
+        version = page.get_published_version()
+
+        if not version:
+            continue
+
+        jpg_path = '{0}/{1}_{2}.jpg'.format(versioned_pages, page.page_number, version)
+        pdf_file.drawImage(jpg_path, 0, 0, size_x, size_y)
+        add_page_number(pdf_file, num, page)
+
+    pdf_file.save()
+
+
 # STRINGS and FILES
 def parse_page_path(file_path):
     file_path = file_path.replace('\\', '/')
@@ -279,7 +408,7 @@ def get_jpg_path(page_number, version):
     :return: string path to page file, None if JPG does not exists
     """
 
-    jpg_path = '{0}/{1}_{2}.jpg'.format(root_pages, page_number, version)
+    jpg_path = '{0}/{1}_{2}.jpg'.format(versioned_pages, page_number, version)
 
     if not os.path.exists(jpg_path):
         return
@@ -312,7 +441,7 @@ class Book:
         If page is not in database - create entity in page table
         """
 
-        page_files = glob.glob('{0}/*.jpg'.format(root_pages))
+        page_files = glob.glob('{0}/*.jpg'.format(versioned_pages))
         page_numbers = collect_page_numbers(page_files)
 
         for page_number in page_numbers:
@@ -339,6 +468,7 @@ class Book:
 
 
 class AlignDelegate(QtGui.QItemDelegate):
+
     def paint(self, painter, option, index):
         option.displayAlignment = QtCore.Qt.AlignCenter
         QtGui.QItemDelegate.paint(self, painter, option, index)
@@ -348,7 +478,7 @@ class BookModel(QtCore.QAbstractTableModel):
     def __init__(self, book, parent=None):
         QtCore.QAbstractTableModel.__init__(self, parent)
         self.book = book
-        self.header = ['  Page  ', '  Pub ', '  Sent ', '  Description  ']  # , '  Notes  '
+        self.header = ['  Number  ', '  Pub ', '  Sent ', '  Description  ']
 
     # Build-in functions
     def flags(self, index):
@@ -385,7 +515,7 @@ class BookModel(QtCore.QAbstractTableModel):
 
         if role == QtCore.Qt.ForegroundRole:
             if column == 2:
-                if page.published_id != page.sent_id:
+                if page.get_published_version() != page.get_sent_version():
                     return QtGui.QBrush(QtGui.QColor('#c90404'))
 
         if role == QtCore.Qt.UserRole + 1:
@@ -396,12 +526,10 @@ class BookModel(QtCore.QAbstractTableModel):
                 return page.page_number
 
             if column == 1:
-                snapshot = get_published_snapshot(page.published_id)
-                if snapshot:
-                    return snapshot.version
+                return page.get_published_version()
 
             if column == 2:
-                return page.sent_id
+                return page.get_sent_version()
 
             if column == 3:
                 return page.description
@@ -465,10 +593,10 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         self.btnDownVersion.clicked.connect(lambda: self.show_page(-1))
         self.btnPublish.clicked.connect(self.publish_page)
         self.btnReload.clicked.connect(self.init_ui)
-        # self.btnSendLatest.clicked.connect(self.send_latest)
-        # self.btnGeneratePDF.clicked.connect(self.generate_pdf)
+        self.btnSendPublished.clicked.connect(self.send_published)
+        self.btnGeneratePDF.clicked.connect(self.generate_pdf)
 
-    # UI
+    # UI setup
     def init_ui(self):
 
         self.book = Book()
@@ -486,6 +614,70 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         webbrowser.open(file_help)
 
     # Functionality
+    def copy_file_locally(self, page):
+        """
+        Copy versioned files to "to_layout" folder without version
+        """
+
+        published_version = page.get_published_version()
+        if not published_version:
+            self.statusbar.showMessage('Page {} was not published!'.format(page.page_number))
+            return
+
+        file_src = '{0}/{1}_{2}.jpg'.format(versioned_pages, page.page_number, published_version)
+        file_out = '{0}/{1}.jpg'.format(final_pages, page.page_number)
+
+        copyfile(file_src, file_out)
+
+        # Check if snapshot of current version exists, create if not
+        snapshot = get_sent_snapshot_by_version(page.id, published_version)
+        if not snapshot:
+            snapshot = add_sent_snapshot(VersionSnapshot(page.id, published_version))
+
+        # Record published version to page and update database
+        page.sent_id = snapshot.id
+        update_page(page)
+
+        # Update pages list with a new page data
+        self.book_model.layoutAboutToBeChanged.emit()
+        self.book.update_page(get_page(page.id))
+        self.book_model.layoutChanged.emit()
+
+        return file_out
+
+    def copy_file_to_drive(self, existing_pages, page, file_out):
+        """
+        Upload file to Google Drive
+        """
+
+        # Delete existing file
+        for existing_page in existing_pages:
+            if existing_page['title'] == '{0}.jpg'.format(page.page_number):
+                existing_page.Delete()
+
+        # Upload new file
+        google_file = self.google_drive.CreateFile({'parents': [{'id': self.jpeg_folder}],
+                                                    'title': '{0}.jpg'.format(page.page_number)})
+        google_file.SetContentFile(file_out)
+        google_file.Upload()
+
+        print '>> Page {0} uploaded.'.format(page.page_number)
+
+    def get_selected_page_numbers(self):
+        """
+        Create a string list of selected pages
+        """
+
+        selected_pages = []
+
+        indexes = self.tabPages.selectionModel().selectedIndexes()
+        for index in indexes:
+            page_number = index.data(QtCore.Qt.DisplayRole)
+            selected_pages.append(page_number)
+
+        return selected_pages
+
+    # UI calls
     def show_page(self, shift=None):
         """
         Display image in UI
@@ -502,12 +694,10 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
             if self.current_version:
                 version = self.current_version
             else:
-                snapshot = get_published_snapshot(page.published_id)
+                version = page.get_published_version()
 
-                if not snapshot:
+                if not version:
                     version = '01'
-                else:
-                    version = snapshot.version
 
             int_version = int(version) + shift
             version = '{0:02d}'.format(int_version)
@@ -515,12 +705,10 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
 
         # If page cell clicked in UI, get published version
         else:
-            snapshot = get_published_snapshot(page.published_id)
+            version = page.get_published_version()
 
-            if not snapshot:
+            if not version:
                 version = '01'
-            else:
-                version = snapshot.version
 
             self.current_version = None
 
@@ -582,75 +770,24 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         # Report
         self.statusbar.showMessage('Published {} version of page {}'.format(version, page.page_number))
 
-
-
-
-
-    def copy_file_locally(self, page):
-        """
-        Copy versioned files to "to_layout" folder without version
-        """
-
-        file_src = '{0}/{1}_{2}.jpg'.format(root_pages, page.page_number, page.published_id)
-        file_out = '{0}/to_layout/{1}.jpg'.format(root_pages, page.page_number)
-
-        copyfile(file_src, file_out)
-
-        self.book_model.layoutAboutToBeChanged.emit()
-        self.book.update_sent_version(page)
-        self.book_model.layoutChanged.emit()
-
-        return file_out
-
-    def copy_file_drive(self, existing_pages, page, file_out):
-        """
-        Upload file to Google Drive
-        """
-
-        # Delete existing file
-        for existing_page in existing_pages:
-            if existing_page['title'] == '{0}.jpg'.format(page.page_number):
-                existing_page.Delete()
-
-        # Upload new file
-        google_file = self.google_drive.CreateFile({'parents': [{'id': self.jpeg_folder}],
-                                                    'title': '{0}.jpg'.format(page.page_number)})
-        google_file.SetContentFile(file_out)
-        google_file.Upload()
-
-        print '>> Page {0} uploaded.'.format(page.page_number)
-
-    def get_selected_page_numbers(self):
-        """
-        Create a string list of selected pages
-        """
-
-        selected_pages = []
-
-        indexes = self.tabPages.selectionModel().selectedIndexes()
-        for index in indexes:
-            page_number = index.data(QtCore.Qt.DisplayRole)
-            selected_pages.append(page_number)
-
-        return selected_pages
-
-    def send_latest(self):
+    def send_published(self):
         """
         Copy files to layout folder and upload to Google Drive
-        JPG = https://drive.google.com/drive/u/2/folders/1ZTL3GjCTP0GeD-BBG-DhFNgOOGvTC4se
+        JPG folder = https://drive.google.com/drive/u/2/folders/1ZTL3GjCTP0GeD-BBG-DhFNgOOGvTC4se
         """
 
-        print '>> Sending files to Google Drive...'
+        # print '>> Sending files to Google Drive...'
+        self.statusbar.showMessage('Copy files to final folder...')
 
         selected_pages = self.get_selected_page_numbers()
-        existing_pages = self.google_drive.ListFile({'q': "'{0}' in parents and trashed=false".format(self.jpeg_folder)
-                                                     }).GetList()
+        # folder_token = {'q': "'{0}' in parents and trashed=false".format(self.jpeg_folder)}
+        # existing_pages = self.google_drive.ListFile(folder_token).GetList()
 
         for page in self.book.list_pages:
 
             # Skip unselected pages
             if self.chbSelected.isChecked():
-                if not page.page_number in selected_pages:
+                if page.page_number not in selected_pages:
                     continue
 
             # Skip versions without update
@@ -658,49 +795,34 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
                 continue
 
             file_out = self.copy_file_locally(page)
-            self.copy_file_drive(existing_pages, page, file_out)
+            # self.copy_file_to_drive(existing_pages, page, file_out)
 
-        print '>> Files uploaded!'
-
-    def add_page_number(self, pdf_file, num, page):
-
-        pos_x = 20
-        if num % 2 != 0:
-            pos_x = 2450
-
-        pdf_file.setFont('Helvetica', 60)
-        pdf_file.drawString(pos_x, 20, page.page_number)
+        # print '>> Files uploaded!'
+        self.statusbar.showMessage('Copy complete!')
 
     def generate_pdf(self):
+        """
+        Build PDF file fro all pages
+        """
 
-        path_pdf = '{0}/workbook_auto_{1}.pdf'.format(root_pdf, self.linPDFVersion.text())
-        size_x = 2598
-        size_y = 3366
-        pdf_file = canvas.Canvas(path_pdf, pagesize=(size_x, size_y))
-        pdf_file.setTitle('Quriotica')
+        self.statusbar.showMessage('Building PDF file...')
 
-        print '>> Building PDF file...'
+        # Create a folder for PDF files:
+        if not os.path.exists(pdf_files):
+            os.makedirs(pdf_files)
 
-        for num, page in enumerate(self.book.list_pages):
+        # Build pdf
+        path_pdf = '{0}/workbook_{1}.pdf'.format(pdf_files, self.linPDFVersion.text())
+        generate_pdf(self.book, path_pdf)
 
-            if not num == 0:  # Make next page
-                pdf_file.showPage()
-
-            version = page.published_id
-            jpg_path = '{0}/{1}_{2}.jpg'.format(root_pages, page.page_number, version)
-            pdf_file.drawImage(jpg_path, 0, 0, size_x, size_y)
-            self.add_page_number(pdf_file, num, page)
-
-        pdf_file.save()
-
-        print 'PDF file saved at {}'.format(path_pdf)
+        self.statusbar.showMessage('PDF file saved at {}'.format(path_pdf))
 
 
 if __name__ == "__main__":
 
     # Init database
     if not os.path.exists(sql_file_path):
-        build_database(sql_file_path)
+        build_database()
 
     app = QtGui.QApplication([])
     ketamine = Assembler()
