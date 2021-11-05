@@ -614,20 +614,15 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         webbrowser.open(file_help)
 
     # Functionality
-    def copy_file_locally(self, page):
+    def copy_file_locally(self, page, published_version):
         """
         Copy versioned files to "to_layout" folder without version
         """
 
-        published_version = page.get_published_version()
-        if not published_version:
-            self.statusbar.showMessage('Page {} was not published!'.format(page.page_number))
-            return
+        file_path_src = '{0}/{1}_{2}.jpg'.format(versioned_pages, page.page_number, published_version)
+        file_path_out = '{0}/{1}.jpg'.format(final_pages, page.page_number)
 
-        file_src = '{0}/{1}_{2}.jpg'.format(versioned_pages, page.page_number, published_version)
-        file_out = '{0}/{1}.jpg'.format(final_pages, page.page_number)
-
-        copyfile(file_src, file_out)
+        copyfile(file_path_src, file_path_out)
 
         # Check if snapshot of current version exists, create if not
         snapshot = get_sent_snapshot_by_version(page.id, published_version)
@@ -643,9 +638,9 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         self.book.update_page(get_page(page.id))
         self.book_model.layoutChanged.emit()
 
-        return file_out
+        return file_path_out
 
-    def copy_file_to_drive(self, existing_pages, page, file_out):
+    def copy_file_to_drive(self, existing_pages, page, file_path_out):
         """
         Upload file to Google Drive
         """
@@ -658,7 +653,7 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         # Upload new file
         google_file = self.google_drive.CreateFile({'parents': [{'id': self.jpeg_folder}],
                                                     'title': '{0}.jpg'.format(page.page_number)})
-        google_file.SetContentFile(file_out)
+        google_file.SetContentFile(file_path_out)
         google_file.Upload()
 
         print '>> Page {0} uploaded.'.format(page.page_number)
@@ -784,18 +779,23 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         # existing_pages = self.google_drive.ListFile(folder_token).GetList()
 
         for page in self.book.list_pages:
-
+            print page.page_number
             # Skip unselected pages
             if self.chbSelected.isChecked():
                 if page.page_number not in selected_pages:
                     continue
 
-            # Skip versions without update
-            if page.published_id == page.sent_id:
+            # Skip published version
+            published_version = page.get_published_version()
+            if not published_version:
                 continue
 
-            file_out = self.copy_file_locally(page)
-            # self.copy_file_to_drive(existing_pages, page, file_out)
+            # Skip versions without update
+            if published_version == page.get_sent_version():
+                continue
+
+            file_path_out = self.copy_file_locally(page, published_version)
+            # self.copy_file_to_drive(existing_pages, page, file_path_out)
 
         # print '>> Files uploaded!'
         self.statusbar.showMessage('Copy complete!')
