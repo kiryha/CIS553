@@ -681,6 +681,11 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
 
         # Get selected page
         indexes = self.tabPages.selectionModel().selectedIndexes()
+
+        if not indexes:
+            self.statusbar.showMessage('WARNING! Please, select page to explore versions!')
+            return
+
         page = indexes[0].data(QtCore.Qt.UserRole + 1)
 
         # If [ + ] or [ - ] buttons pressed, get next or previous version
