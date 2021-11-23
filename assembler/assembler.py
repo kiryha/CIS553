@@ -4,6 +4,7 @@ Book Assembler
 
 import os
 import glob
+import json
 import sqlite3
 import webbrowser
 from shutil import copyfile
@@ -13,18 +14,59 @@ from PySide import QtCore, QtGui
 from ui import ui_assembler_main
 
 
-assembler_root = os.path.dirname(os.path.abspath(__file__))
-project_root = 'E:/projects/workbook'
-versioned_pages = '{0}/pages/jpg'.format(project_root)
-final_pages = '{0}/pages/jpg/final'.format(project_root)
-pdf_files = '{0}/pages/pdf'.format(project_root)
-sql_file_path = '{}/data/data.db'.format(assembler_root)
+assembler_root = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
+
+
+class Settings:
+    def __init__(self, settings_data):
+
+        self.project_root = None
+        self.versioned_pages = None
+        self.final_pages = None
+        self.pdf_files = None
+        self.sql_file_path = None
+
+        self.set_attributes(settings_data)
+
+    def set_attributes(self, settings_data):
+        """
+        Set class attributes from JSON file
+
+        :param settings_data:
+        :return:
+        """
+
+        self.project_root = settings_data['project_root']['string']
+        project_root = self.project_root
+
+        for attribute in settings_data:
+
+            if attribute == 'project_root':
+                continue
+
+            evaluated_token = eval(settings_data[attribute]['token'])
+            attribute_value = settings_data[attribute]['string'].format(evaluated_token)
+            setattr(self, attribute, attribute_value)
+
+
+def get_settings():
+    """
+    Read Book Assembler settings from file
+    :return:
+    """
+
+    settings_file = '{}/data/settings.json'.format(assembler_root)
+
+    with open(settings_file, 'r') as file_content:
+        settings_data = json.load(file_content)
+
+        return Settings(settings_data)
 
 
 # DB
 def build_database():
 
-    connection = sqlite3.connect(sql_file_path)
+    connection = sqlite3.connect(settings.sql_file_path)
     cursor = connection.cursor()
 
     cursor.execute('''CREATE TABLE pages (
@@ -57,7 +99,7 @@ def build_database():
 
 def get_page(page_id):
 
-    connection = sqlite3.connect(sql_file_path)
+    connection = sqlite3.connect(settings.sql_file_path)
     cursor = connection.cursor()
 
     cursor.execute("SELECT * FROM pages WHERE "
@@ -74,7 +116,7 @@ def get_page(page_id):
 
 def get_page_by_number(page_number):
 
-    connection = sqlite3.connect(sql_file_path)
+    connection = sqlite3.connect(settings.sql_file_path)
     cursor = connection.cursor()
 
     cursor.execute("SELECT * FROM pages WHERE "
@@ -91,7 +133,7 @@ def get_page_by_number(page_number):
 
 def add_page(page):
 
-    connection = sqlite3.connect(sql_file_path)
+    connection = sqlite3.connect(settings.sql_file_path)
     cursor = connection.cursor()
 
     cursor.execute("INSERT INTO pages VALUES ("
@@ -116,7 +158,7 @@ def add_page(page):
 
 def update_page(page):
 
-    connection = sqlite3.connect(sql_file_path)
+    connection = sqlite3.connect(settings.sql_file_path)
     cursor = connection.cursor()
 
     cursor.execute("UPDATE pages SET "
@@ -139,7 +181,7 @@ def update_page(page):
 
 def get_published_snapshot(snapshot_id):
 
-    connection = sqlite3.connect(sql_file_path)
+    connection = sqlite3.connect(settings.sql_file_path)
     cursor = connection.cursor()
 
     cursor.execute("SELECT * FROM published "
@@ -156,7 +198,7 @@ def get_published_snapshot(snapshot_id):
 
 def get_sent_snapshot(snapshot_id):
 
-    connection = sqlite3.connect(sql_file_path)
+    connection = sqlite3.connect(settings.sql_file_path)
     cursor = connection.cursor()
 
     cursor.execute("SELECT * FROM sent "
@@ -176,7 +218,7 @@ def get_published_snapshot_by_version(page_id, version):
 
     """
 
-    connection = sqlite3.connect(sql_file_path)
+    connection = sqlite3.connect(settings.sql_file_path)
     cursor = connection.cursor()
 
     cursor.execute("SELECT * FROM published "
@@ -198,7 +240,7 @@ def get_sent_snapshot_by_version(page_id, version):
 
     """
 
-    connection = sqlite3.connect(sql_file_path)
+    connection = sqlite3.connect(settings.sql_file_path)
     cursor = connection.cursor()
 
     cursor.execute("SELECT * FROM sent "
@@ -219,7 +261,7 @@ def add_published_snapshot(snapshot):
     """
     """
 
-    connection = sqlite3.connect(sql_file_path)
+    connection = sqlite3.connect(settings.sql_file_path)
     cursor = connection.cursor()
 
     cursor.execute("INSERT INTO published VALUES ("
@@ -244,7 +286,7 @@ def add_sent_snapshot(snapshot):
     """
     """
 
-    connection = sqlite3.connect(sql_file_path)
+    connection = sqlite3.connect(settings.sql_file_path)
     cursor = connection.cursor()
 
     cursor.execute("INSERT INTO sent VALUES ("
@@ -383,7 +425,7 @@ def generate_pdf(book, path_pdf):
         if not version:
             continue
 
-        jpg_path = '{0}/{1}_{2}.jpg'.format(versioned_pages, page.page_number, version)
+        jpg_path = '{0}/{1}_{2}.jpg'.format(settings.versioned_pages, page.page_number, version)
         pdf_file.drawImage(jpg_path, 0, 0, size_x, size_y)
         add_page_number(pdf_file, num, page)
 
@@ -392,6 +434,7 @@ def generate_pdf(book, path_pdf):
 
 # STRINGS and FILES
 def parse_page_path(file_path):
+
     file_path = file_path.replace('\\', '/')
     file_name = file_path.split('/')[-1]
     page_name = file_name.split('.')[0]
@@ -408,7 +451,7 @@ def get_jpg_path(page_number, version):
     :return: string path to page file, None if JPG does not exists
     """
 
-    jpg_path = '{0}/{1}_{2}.jpg'.format(versioned_pages, page_number, version)
+    jpg_path = '{0}/{1}_{2}.jpg'.format(settings.versioned_pages, page_number, version)
 
     if not os.path.exists(jpg_path):
         return
@@ -441,7 +484,7 @@ class Book:
         If page is not in database - create entity in page table
         """
 
-        page_files = glob.glob('{0}/*.jpg'.format(versioned_pages))
+        page_files = glob.glob('{0}/*.jpg'.format(settings.versioned_pages))
         page_numbers = collect_page_numbers(page_files)
 
         for page_number in page_numbers:
@@ -619,8 +662,8 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         Copy versioned files to "to_layout" folder without version
         """
 
-        file_path_src = '{0}/{1}_{2}.jpg'.format(versioned_pages, page.page_number, published_version)
-        file_path_out = '{0}/{1}.jpg'.format(final_pages, page.page_number)
+        file_path_src = '{0}/{1}_{2}.jpg'.format(settings.versioned_pages, page.page_number, published_version)
+        file_path_out = '{0}/{1}.jpg'.format(settings.final_pages, page.page_number)
 
         copyfile(file_path_src, file_path_out)
 
@@ -813,11 +856,11 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         self.statusbar.showMessage('Building PDF file...')
 
         # Create a folder for PDF files:
-        if not os.path.exists(pdf_files):
-            os.makedirs(pdf_files)
+        if not os.path.exists(settings.pdf_files):
+            os.makedirs(settings.pdf_files)
 
         # Build pdf
-        path_pdf = '{0}/workbook_{1}.pdf'.format(pdf_files, self.linPDFVersion.text())
+        path_pdf = '{0}/workbook_{1}.pdf'.format(settings.pdf_files, self.linPDFVersion.text())
         generate_pdf(self.book, path_pdf)
 
         self.statusbar.showMessage('PDF file saved at {}'.format(path_pdf))
@@ -825,8 +868,11 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
 
 if __name__ == "__main__":
 
+    # Read settings from JSON file
+    settings = get_settings()
+
     # Init database
-    if not os.path.exists(sql_file_path):
+    if not os.path.exists(settings.sql_file_path):
         build_database()
 
     app = QtGui.QApplication([])
