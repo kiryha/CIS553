@@ -13,8 +13,7 @@ from PySide import QtCore, QtGui
 from ui import ui_assembler_main
 
 from modules.database import init
-# from modules.database import entities
-from modules.database import book
+from modules.database import database
 from modules.settings import settings
 
 
@@ -221,7 +220,7 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
     def init_ui(self):
 
         page_files = glob.glob('{0}/*.jpg'.format(settings.versioned_pages))
-        self.book = book.Book(page_files)
+        self.book = database.Book(page_files)
         self.book.get_pages()
 
         self.book_model = BookModel(self.book)
@@ -247,17 +246,17 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         copyfile(file_path_src, file_path_out)
 
         # Check if snapshot of current version exists, create if not
-        snapshot = get_sent_snapshot_by_version(page.id, published_version)
+        snapshot = page.get_sent_snapshot_by_version(published_version)
         if not snapshot:
-            snapshot = add_sent_snapshot(VersionSnapshot(page.id, published_version))
+            snapshot = page.add_sent_snapshot(published_version)
 
         # Record published version to page and update database
         page.sent_id = snapshot.id
-        update_page(page)
+        page.update_page()
 
         # Update pages list with a new page data
         self.book_model.layoutAboutToBeChanged.emit()
-        self.book.update_page(get_page(page.id))
+        self.book.update_page(page)
         self.book_model.layoutChanged.emit()
 
         return file_path_out
@@ -376,17 +375,18 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
             return
 
         # Check if snapshot of current version exists, create if not
-        snapshot = get_published_snapshot_by_version(page.id, version)
+        snapshot = page.get_published_snapshot_by_version(version)
         if not snapshot:
-            snapshot = add_published_snapshot(VersionSnapshot(page.id, version))
+            # snapshot = add_published_snapshot(VersionSnapshot(page.id, version))
+            snapshot = page.add_published_snapshot(version)
 
         # Record published version to page
         page.published_id = snapshot.id
-        update_page(page)
+        page.update_page()
 
         # Update pages list with a new page data
         self.book_model.layoutAboutToBeChanged.emit()
-        self.book.update_page(get_page(page.id))
+        self.book.update_page(page)
         self.book_model.layoutChanged.emit()
 
         # Report
