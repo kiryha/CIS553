@@ -1,11 +1,10 @@
 """
-Book Assembler
+Book Assembler main module
 """
+
 
 import os
 import glob
-import json
-import sqlite3
 import webbrowser
 from shutil import copyfile
 from reportlab.pdfgen import canvas
@@ -13,373 +12,13 @@ from PySide import QtCore, QtGui
 
 from ui import ui_assembler_main
 
+from modules.database import init
+# from modules.database import entities
+from modules.database import book
+from modules.settings import settings
+
 
 assembler_root = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
-
-
-class Settings:
-    def __init__(self, settings_data):
-
-        self.project_root = None
-        self.versioned_pages = None
-        self.final_pages = None
-        self.pdf_files = None
-        self.sql_file_path = None
-
-        self.set_attributes(settings_data)
-
-    def set_attributes(self, settings_data):
-        """
-        Set class attributes from JSON file
-
-        :param settings_data:
-        :return:
-        """
-
-        self.project_root = settings_data['project_root']['string']
-        project_root = self.project_root
-
-        for attribute in settings_data:
-
-            if attribute == 'project_root':
-                continue
-
-            evaluated_token = eval(settings_data[attribute]['token'])
-            attribute_value = settings_data[attribute]['string'].format(evaluated_token)
-            setattr(self, attribute, attribute_value)
-
-
-def get_settings():
-    """
-    Read Book Assembler settings from file
-    :return:
-    """
-
-    settings_file = '{}/data/settings.json'.format(assembler_root)
-
-    with open(settings_file, 'r') as file_content:
-        settings_data = json.load(file_content)
-
-        return Settings(settings_data)
-
-
-# DB
-def build_database():
-
-    connection = sqlite3.connect(settings.sql_file_path)
-    cursor = connection.cursor()
-
-    cursor.execute('''CREATE TABLE pages (
-                        id integer primary key autoincrement,
-                        page_number text,
-                        published_id integer,
-                        sent_id integer,
-                        description text,
-                        FOREIGN KEY(published_id) REFERENCES published(id)
-                        FOREIGN KEY(sent_id) REFERENCES sent(id)
-                        )''')
-
-    cursor.execute('''CREATE TABLE published (
-                        id integer primary key autoincrement,
-                        page_id integer,
-                        version text,
-                        description text
-                        )''')
-
-    cursor.execute('''CREATE TABLE sent (
-                        id integer primary key autoincrement,
-                        page_id integer,
-                        version text,
-                        description text
-                        )''')
-
-    connection.commit()
-    connection.close()
-
-
-def get_page(page_id):
-
-    connection = sqlite3.connect(settings.sql_file_path)
-    cursor = connection.cursor()
-
-    cursor.execute("SELECT * FROM pages WHERE "
-                   "id=:id ",
-
-                   {'id': page_id})
-
-    page_tuple = cursor.fetchone()
-    connection.close()
-
-    if page_tuple:
-        return Converter.convert_to_page([page_tuple])[0]
-
-
-def get_page_by_number(page_number):
-
-    connection = sqlite3.connect(settings.sql_file_path)
-    cursor = connection.cursor()
-
-    cursor.execute("SELECT * FROM pages WHERE "
-                   "page_number=:page_number ",
-
-                   {'page_number': page_number})
-
-    page_tuple = cursor.fetchone()
-    connection.close()
-
-    if page_tuple:
-        return Converter.convert_to_page([page_tuple])[0]
-
-
-def add_page(page):
-
-    connection = sqlite3.connect(settings.sql_file_path)
-    cursor = connection.cursor()
-
-    cursor.execute("INSERT INTO pages VALUES ("
-                   ":id,"
-                   ":page_number,"
-                   ":published_id,"
-                   ":sent_id,"
-                   ":description)",
-
-                   {'id': cursor.lastrowid,
-                    'page_number': page.page_number,
-                    'published_id': page.published_id,
-                    'sent_id': page.sent_id,
-                    'description': page.description})
-
-    connection.commit()
-    page.id = cursor.lastrowid  # Add database ID to the asset object
-    connection.close()
-
-    return page
-
-
-def update_page(page):
-
-    connection = sqlite3.connect(settings.sql_file_path)
-    cursor = connection.cursor()
-
-    cursor.execute("UPDATE pages SET "
-                   "page_number=:page_number, "
-                   "published_id=:published_id, "
-                   "sent_id=:sent_id, "
-                   "description=:description "
-
-                   "WHERE id=:id",
-
-                   {'id': page.id,
-                    'page_number': page.page_number,
-                    'published_id': page.published_id,
-                    'sent_id': page.sent_id,
-                    'description': page.description})
-
-    connection.commit()
-    connection.close()
-
-
-def get_published_snapshot(snapshot_id):
-
-    connection = sqlite3.connect(settings.sql_file_path)
-    cursor = connection.cursor()
-
-    cursor.execute("SELECT * FROM published "
-                   "WHERE id=:id ",
-
-                   {'id': snapshot_id})
-
-    snapshot_tuple = cursor.fetchone()
-    connection.close()
-
-    if snapshot_tuple:
-        return Converter.convert_to_snapshot([snapshot_tuple])[0]
-
-
-def get_sent_snapshot(snapshot_id):
-
-    connection = sqlite3.connect(settings.sql_file_path)
-    cursor = connection.cursor()
-
-    cursor.execute("SELECT * FROM sent "
-                   "WHERE id=:id ",
-
-                   {'id': snapshot_id})
-
-    snapshot_tuple = cursor.fetchone()
-    connection.close()
-
-    if snapshot_tuple:
-        return Converter.convert_to_snapshot([snapshot_tuple])[0]
-
-
-def get_published_snapshot_by_version(page_id, version):
-    """
-
-    """
-
-    connection = sqlite3.connect(settings.sql_file_path)
-    cursor = connection.cursor()
-
-    cursor.execute("SELECT * FROM published "
-                   "WHERE page_id=:page_id "
-                   "AND version=:version",
-
-                   {'page_id': page_id,
-                    'version': version})
-
-    snapshot_tuple = cursor.fetchone()
-    connection.close()
-
-    if snapshot_tuple:
-        return Converter.convert_to_snapshot([snapshot_tuple])[0]
-
-
-def get_sent_snapshot_by_version(page_id, version):
-    """
-
-    """
-
-    connection = sqlite3.connect(settings.sql_file_path)
-    cursor = connection.cursor()
-
-    cursor.execute("SELECT * FROM sent "
-                   "WHERE page_id=:page_id "
-                   "AND version=:version",
-
-                   {'page_id': page_id,
-                    'version': version})
-
-    snapshot_tuple = cursor.fetchone()
-    connection.close()
-
-    if snapshot_tuple:
-        return Converter.convert_to_snapshot([snapshot_tuple])[0]
-
-
-def add_published_snapshot(snapshot):
-    """
-    """
-
-    connection = sqlite3.connect(settings.sql_file_path)
-    cursor = connection.cursor()
-
-    cursor.execute("INSERT INTO published VALUES ("
-                   ":id,"
-                   ":page_id,"
-                   ":version,"
-                   ":description)",
-
-                   {'id': cursor.lastrowid,
-                    'page_id': snapshot.page_id,
-                    'version': snapshot.version,
-                    'description': snapshot.description})
-
-    connection.commit()
-    snapshot.id = cursor.lastrowid
-    connection.close()
-
-    return snapshot
-
-
-def add_sent_snapshot(snapshot):
-    """
-    """
-
-    connection = sqlite3.connect(settings.sql_file_path)
-    cursor = connection.cursor()
-
-    cursor.execute("INSERT INTO sent VALUES ("
-                   ":id,"
-                   ":page_id,"
-                   ":version,"
-                   ":description)",
-
-                   {'id': cursor.lastrowid,
-                    'page_id': snapshot.page_id,
-                    'version': snapshot.version,
-                    'description': snapshot.description})
-
-    connection.commit()
-    snapshot.id = cursor.lastrowid
-    connection.close()
-
-    return snapshot
-
-
-class Page:
-    def __init__(self, page_number):
-
-        self.id = None
-        self.page_number = page_number
-        self.published_id = None
-        self.sent_id = None
-        self.description = ''
-
-    def get_published_version(self):
-
-        snapshot = get_published_snapshot(self.published_id)
-        if snapshot:
-            return snapshot.version
-
-    def get_sent_version(self):
-
-        snapshot = get_sent_snapshot(self.sent_id)
-        if snapshot:
-            return snapshot.version
-
-
-class VersionSnapshot:
-    """
-    Published or sent version of the page file
-    """
-    def __init__(self, page_id, version):
-        self.id = None
-        self.page_id = page_id
-        self.version = version
-        self.description = ''
-
-
-class Converter:
-    """
-    Convert data from DB to objects
-    """
-
-    @staticmethod
-    def convert_to_page(page_tuples):
-        """
-        Convert list of page tuples to list of Page() objects
-        (id, page_number, published_id, sent_id, description)
-        """
-
-        pages = []
-
-        for page_tuple in page_tuples:
-            page = Page(page_tuple[1])
-            page.id = page_tuple[0]
-            page.published_id = page_tuple[2]
-            page.sent_id = page_tuple[3]
-            page.description = page_tuple[4]
-            pages.append(page)
-
-        return pages
-
-    @staticmethod
-    def convert_to_snapshot(snapshot_tuples):
-        """
-        (id, page_id, version, description)
-        :param snapshot_tuples:
-        :return:
-        """
-
-        snapshots = []
-        for snapshot_tuple in snapshot_tuples:
-            snapshot = VersionSnapshot(snapshot_tuple[1], snapshot_tuple[2])
-            snapshot.id = snapshot_tuple[0]
-            snapshot.description = snapshot_tuple[3]
-            snapshots.append(snapshot)
-
-        return snapshots
 
 
 # PDF
@@ -433,16 +72,6 @@ def generate_pdf(book, path_pdf):
 
 
 # STRINGS and FILES
-def parse_page_path(file_path):
-
-    file_path = file_path.replace('\\', '/')
-    file_name = file_path.split('/')[-1]
-    page_name = file_name.split('.')[0]
-    page_number, page_version = page_name.split('_')
-
-    return page_number, page_version
-
-
 def get_jpg_path(page_number, version):
     """
     Get page file path by page number and version
@@ -457,57 +86,6 @@ def get_jpg_path(page_number, version):
         return
 
     return jpg_path
-
-
-def collect_page_numbers(page_files):
-    """
-    Get list of page numbers without versions
-    """
-
-    page_numbers = []
-
-    for page_file in page_files:
-        page_number, page_version = parse_page_path(page_file)
-        if page_number not in page_numbers:
-            page_numbers.append(page_number)
-
-    return sorted(page_numbers)
-
-
-class Book:
-    def __init__(self):
-        self.list_pages = []
-
-    def get_pages(self):
-        """
-        Get list of pages from JPG folder
-        If page is not in database - create entity in page table
-        """
-
-        page_files = glob.glob('{0}/*.jpg'.format(settings.versioned_pages))
-        page_numbers = collect_page_numbers(page_files)
-
-        for page_number in page_numbers:
-
-            page = get_page_by_number(page_number)
-
-            # Create page record in the database
-            if not page:
-                page = Page(page_number)
-                page = add_page(page)
-
-            self.list_pages.append(page)
-
-    def update_page(self, page):
-        """
-        Update existing page in page list
-        """
-        for _page in self.list_pages:
-            if _page.id == page.id:
-                self.list_pages.remove(_page)
-                self.list_pages.append(page)
-
-        self.list_pages.sort(key=lambda page: page.page_number)
 
 
 class AlignDelegate(QtGui.QItemDelegate):
@@ -594,7 +172,7 @@ class BookModel(QtCore.QAbstractTableModel):
 
             if column == 3:
                 page.description = cell_data
-                update_page(page)
+                crud.update_page(page)
                 self.book.update_page(page)
 
             return True
@@ -642,7 +220,8 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
     # UI setup
     def init_ui(self):
 
-        self.book = Book()
+        page_files = glob.glob('{0}/*.jpg'.format(settings.versioned_pages))
+        self.book = book.Book(page_files)
         self.book.get_pages()
 
         self.book_model = BookModel(self.book)
@@ -869,11 +448,11 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
 if __name__ == "__main__":
 
     # Read settings from JSON file
-    settings = get_settings()
+    settings = settings.get_settings()
 
     # Init database
     if not os.path.exists(settings.sql_file_path):
-        build_database()
+        init.build_database(settings.sql_file_path)
 
     app = QtGui.QApplication([])
     ketamine = Assembler()

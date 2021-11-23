@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'E:\projects\master\CS553\dev\assembler\ui\ui_assembler_main.ui'
 #
-# Created: Thu Nov  4 18:23:15 2021
+# Created: Tue Nov 23 15:33:22 2021
 #      by: pyside-uic 0.2.15 running on PySide 1.2.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -111,5 +111,5 @@ class Ui_Assembler(object):
         self.menuHelp.setTitle(QtGui.QApplication.translate("Assembler", "Help", None, QtGui.QApplication.UnicodeUTF8))
         self.menuEdit.setTitle(QtGui.QApplication.translate("Assembler", "Edit", None, QtGui.QApplication.UnicodeUTF8))
         self.actionDocumentation.setText(QtGui.QApplication.translate("Assembler", "Documentation", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionSet_Project.setText(QtGui.QApplication.translate("Assembler", "Set Project", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionSet_Project.setText(QtGui.QApplication.translate("Assembler", "Modify Settings", None, QtGui.QApplication.UnicodeUTF8))
 

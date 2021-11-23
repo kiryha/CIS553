@@ -185,7 +185,7 @@
   </action>
   <action name="actionSet_Project">
    <property name="text">
-    <string>Set Project</string>
+    <string>Modify Settings</string>
    </property>
   </action>
  </widget>
