@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'E:\projects\master\CS553\dev\assembler\ui\ui_assembler_main.ui'
 #
-# Created: Tue Nov 23 15:33:22 2021
+# Created: Wed Nov 24 12:41:15 2021
 #      by: pyside-uic 0.2.15 running on PySide 1.2.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -86,10 +86,10 @@ class Ui_Assembler(object):
         Assembler.setStatusBar(self.statusbar)
         self.actionDocumentation = QtGui.QAction(Assembler)
         self.actionDocumentation.setObjectName("actionDocumentation")
-        self.actionSet_Project = QtGui.QAction(Assembler)
-        self.actionSet_Project.setObjectName("actionSet_Project")
+        self.actionSettings = QtGui.QAction(Assembler)
+        self.actionSettings.setObjectName("actionSettings")
         self.menuHelp.addAction(self.actionDocumentation)
-        self.menuEdit.addAction(self.actionSet_Project)
+        self.menuEdit.addAction(self.actionSettings)
         self.menubar.addAction(self.menuEdit.menuAction())
         self.menubar.addAction(self.menuHelp.menuAction())
 
@@ -111,5 +111,5 @@ class Ui_Assembler(object):
         self.menuHelp.setTitle(QtGui.QApplication.translate("Assembler", "Help", None, QtGui.QApplication.UnicodeUTF8))
         self.menuEdit.setTitle(QtGui.QApplication.translate("Assembler", "Edit", None, QtGui.QApplication.UnicodeUTF8))
         self.actionDocumentation.setText(QtGui.QApplication.translate("Assembler", "Documentation", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionSet_Project.setText(QtGui.QApplication.translate("Assembler", "Modify Settings", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionSettings.setText(QtGui.QApplication.translate("Assembler", "Modify Settings", None, QtGui.QApplication.UnicodeUTF8))
 

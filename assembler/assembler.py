@@ -11,6 +11,7 @@ from reportlab.pdfgen import canvas
 from PySide import QtCore, QtGui
 
 from ui import ui_assembler_main
+from ui import ui_assembler_settings
 
 from modules.database import init
 from modules.database import database
@@ -70,21 +71,33 @@ def generate_pdf(book, path_pdf):
     pdf_file.save()
 
 
-# STRINGS and FILES
-def get_jpg_path(page_number, version):
-    """
-    Get page file path by page number and version
-    :param page_number:
-    :param version:
-    :return: string path to page file, None if JPG does not exists
-    """
+class SettingsUI(QtGui.QDialog, ui_assembler_settings.Ui_Settings):
+    def __init__(self, parent=None):
+        # SETUP UI WINDOW
+        super(SettingsUI, self).__init__(parent=parent)
+        self.setupUi(self)
+        self.parent = parent
 
-    jpg_path = '{0}/{1}_{2}.jpg'.format(settings.versioned_pages, page_number, version)
+        # # UI functionality
+        # self.btnConvert.clicked.connect(self.run_convert)
+        # self.btnConvert.clicked.connect(self.close)
 
-    if not os.path.exists(jpg_path):
-        return
+    def showEvent(self, event):
 
-    return jpg_path
+        # Add list of parts to UI
+        # self.listParts.setModel(self.model_parts)
+        pass
+
+    def run_convert(self):
+
+        # Get list of FBX paths from UI selection
+        selected_fbx_paths = []
+        model_indexes = self.listParts.selectedIndexes()
+        for model_index in model_indexes:
+            path = model_index.data(QtCore.Qt.UserRole + 3)
+            selected_fbx_paths.append(path)
+
+        self.parent.convert_selected_asset_parts(selected_fbx_paths)
 
 
 class AlignDelegate(QtGui.QItemDelegate):
@@ -206,6 +219,7 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         self.init_ui()
 
         # Setup UI
+        self.actionSettings.triggered.connect(self.edit_settings)
         self.actionDocumentation.triggered.connect(self.help)
         self.tabPages.clicked.connect(self.show_page)
 
@@ -235,6 +249,21 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         webbrowser.open(file_help)
 
     # Functionality
+    def get_jpg_path(self, page_number, version):
+        """
+        Get page file path by page number and version
+        :param page_number:
+        :param version:
+        :return: string path to page file, None if JPG does not exists
+        """
+
+        jpg_path = '{0}/{1}_{2}.jpg'.format(settings.versioned_pages, page_number, version)
+
+        if not os.path.exists(jpg_path):
+            return
+
+        return jpg_path
+
     def copy_file_locally(self, page, published_version):
         """
         Copy versioned files to "to_layout" folder without version
@@ -294,6 +323,11 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         return selected_pages
 
     # UI calls
+    def edit_settings(self):
+
+        settings_ui = SettingsUI(self)
+        settings_ui.show()
+
     def show_page(self, shift=None):
         """
         Display image in UI
@@ -334,7 +368,7 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
             self.current_version = None
 
         # Show JPG
-        jpg_path = get_jpg_path(page.page_number, version)
+        jpg_path = self.get_jpg_path(page.page_number, version)
 
         if not jpg_path:
             self.labPage.setPixmap(None)
@@ -369,7 +403,7 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
             version = '01'
 
         # Get path to JPG
-        jpg_path = get_jpg_path(page.page_number, version)
+        jpg_path = self.get_jpg_path(page.page_number, version)
         if not jpg_path:
             self.statusbar.showMessage('ERROR! {} version of {} page does not exists!'.format(version, page.page_number))
             return
