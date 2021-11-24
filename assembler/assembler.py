@@ -171,7 +171,7 @@ class BookModel(QtCore.QAbstractTableModel):
 
             if column == 3:
                 page.description = cell_data
-                crud.update_page(page)
+                page.update_page()
                 self.book.update_page(page)
 
             return True
@@ -406,7 +406,7 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         # existing_pages = self.google_drive.ListFile(folder_token).GetList()
 
         for page in self.book.list_pages:
-            print page.page_number
+
             # Skip unselected pages
             if self.chbSelected.isChecked():
                 if page.page_number not in selected_pages:
