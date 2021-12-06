@@ -150,6 +150,11 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         # SETUP UI
         self.setupUi(self)
 
+        # Google Drive Authentication
+        # auth = GoogleAuth()
+        # auth.LocalWebserverAuth()
+        # self.google_drive = GoogleDrive(auth)
+
         # Setup pages table
         self.tabPages.verticalHeader().hide()
         self.tabPages.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
@@ -242,13 +247,8 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         Upload file to Google Drive
         """
 
-        # Google Drive Authentication
-        auth = GoogleAuth()
-        auth.LocalWebserverAuth()
-        google_drive = GoogleDrive(auth)
-
         folder_token = {'q': "'{0}' in parents and trashed=false".format(settings_data.jpeg_folder)}
-        existing_pages = google_drive.ListFile(folder_token).GetList()
+        existing_pages = self.google_drive.ListFile(folder_token).GetList()
 
         # Delete existing file
         for existing_page in existing_pages:
@@ -256,7 +256,7 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
                 existing_page.Delete()
 
         # Upload new file
-        google_file = google_drive.CreateFile({'parents': [{'id': settings_data.jpeg_folder}],
+        google_file = self.google_drive.CreateFile({'parents': [{'id': settings_data.jpeg_folder}],
                                                'title': '{0}.jpg'.format(page.page_number)})
         google_file.SetContentFile(file_path_out)
         google_file.Upload()
@@ -412,8 +412,7 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
             file_path_out = self.copy_file_locally(page, published_version)
 
             # Upload file do google drive
-            if self.chbDrive.isChecked():
-                self.copy_file_to_drive(page, file_path_out)
+            # self.copy_file_to_drive(page, file_path_out)
 
         self.statusbar.showMessage('Copy complete!')
 
