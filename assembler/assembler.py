@@ -25,6 +25,10 @@ assembler_root = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
 
 
 class SettingsUI(QtGui.QDialog, ui_assembler_settings.Ui_Settings):
+    """
+    Class to edit Book Assembler settings by user
+    """
+
     def __init__(self, parent=None):
         # SETUP UI WINDOW
         super(SettingsUI, self).__init__(parent=parent)
@@ -36,8 +40,10 @@ class SettingsUI(QtGui.QDialog, ui_assembler_settings.Ui_Settings):
         self.btnSaveSettings.clicked.connect(self.close)
 
     def showEvent(self, event):
+        """
+        Read settings from settings.json and fill UI
+        """
 
-        # Read settings and fill UI
         self.linProjectFolder.setText(settings_data.project_root)
         self.linVersionedPages.setText(settings_data.versioned_pages)
         self.linFinalPages.setText(settings_data.final_pages)
@@ -47,7 +53,6 @@ class SettingsUI(QtGui.QDialog, ui_assembler_settings.Ui_Settings):
     def update_settings(self):
         """
         Save edited strings to settings.json
-        :return:
         """
 
         self.parent.update_settings(self.linProjectFolder.text(),
@@ -58,6 +63,9 @@ class SettingsUI(QtGui.QDialog, ui_assembler_settings.Ui_Settings):
 
 
 class AlignDelegate(QtGui.QItemDelegate):
+    """
+    Center alignment for data model of the pages table
+    """
 
     def paint(self, painter, option, index):
         option.displayAlignment = QtCore.Qt.AlignCenter
@@ -65,6 +73,10 @@ class AlignDelegate(QtGui.QItemDelegate):
 
 
 class BookModel(QtCore.QAbstractTableModel):
+    """
+    PySide data model for a book
+    """
+
     def __init__(self, book, parent=None):
         QtCore.QAbstractTableModel.__init__(self, parent)
         self.book = book
@@ -72,6 +84,9 @@ class BookModel(QtCore.QAbstractTableModel):
 
     # Build-in functions
     def flags(self, index):
+        """
+        Define table behaviour
+        """
 
         column = index.column()
         if column == 3:
@@ -80,10 +95,17 @@ class BookModel(QtCore.QAbstractTableModel):
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
 
     def headerData(self, col, orientation, role):
+        """
+        Set name for table columns
+        """
+
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
             return self.header[col]
 
     def rowCount(self, parent):
+        """
+        Calculate row count
+        """
 
         if not self.book.list_pages:
             return 0
@@ -91,10 +113,16 @@ class BookModel(QtCore.QAbstractTableModel):
         return len(self.book.list_pages)
 
     def columnCount(self, parent):
+        """
+        Define column count for table
+        """
 
         return 4
 
     def data(self, index, role):
+        """
+        Display data from database in UI
+        """
 
         if not index.isValid():
             return
@@ -103,14 +131,17 @@ class BookModel(QtCore.QAbstractTableModel):
         column = index.column()
         page = self.book.list_pages[row]
 
+        # Paint text red if published version != uploaded version
         if role == QtCore.Qt.ForegroundRole:
             if column == 2:
                 if page.get_published_version() != page.get_sent_version():
                     return QtGui.QBrush(QtGui.QColor('#c90404'))
 
+        # Get page object
         if role == QtCore.Qt.UserRole + 1:
             return page
 
+        # Display page data
         if role == QtCore.Qt.DisplayRole:
             if column == 0:
                 return page.page_number
@@ -124,6 +155,7 @@ class BookModel(QtCore.QAbstractTableModel):
             if column == 3:
                 return page.description
 
+        # Edit description
         if role == QtCore.Qt.EditRole:
             if column == 3:
                 return page.description
@@ -148,6 +180,10 @@ class BookModel(QtCore.QAbstractTableModel):
 
 
 class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
+    """
+    Main class of Book Assembler
+    """
+
     def __init__(self, parent=None):
         super(Assembler, self).__init__(parent=parent)
 
@@ -188,6 +224,9 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
 
     # UI setup
     def init_ui(self):
+        """
+        Read data from database, read files from disc, output data to UI
+        """
 
         page_files = glob.glob('{0}/*.jpg'.format(settings_data.versioned_pages))
         self.book = database.Book(page_files)
@@ -284,18 +323,15 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
     def update_settings(self, project_folder, versioned_pages, final_pages, pdf_files, sql_file_path):
         """
         Save settings edited by user to settings.json
-
-        :param project_folder:
-        :param versioned_pages:
-        :param final_pages:
-        :param pdf_files:
-        :param sql_file_path:
-        :return:
         """
+
         settings.set_settings(project_folder, versioned_pages, final_pages, pdf_files, sql_file_path)
 
     # UI calls
     def edit_settings(self):
+        """
+        Launch Edit Setting window
+        """
 
         settings_ui = SettingsUI(self)
         settings_ui.show()
@@ -401,14 +437,13 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
     def send_published(self):
         """
         Copy files to layout folder and upload to Google Drive
-        JPG folder = https://drive.google.com/drive/u/2/folders/1ZTL3GjCTP0GeD-BBG-DhFNgOOGvTC4se
         """
 
-        # print '>> Sending files to Google Drive...'
         self.statusbar.showMessage('Copy files to final folder...')
 
         selected_pages = self.get_selected_page_numbers()
 
+        # Process pages
         for page in self.book.list_pages:
 
             # Skip unselected pages
@@ -460,6 +495,7 @@ if __name__ == "__main__":
     if not os.path.exists(settings_data.sql_file_path):
         init.build_database(settings_data.sql_file_path)
 
+    # Launch the Book Assembler application
     app = QtGui.QApplication([])
     ketamine = Assembler()
     ketamine.show()

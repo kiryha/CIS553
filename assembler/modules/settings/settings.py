@@ -1,6 +1,5 @@
 """
-Module to read settings from JSON file
-Extension: to edit settings and save them back to a file
+Module to read/writes settings from/to JSON file
 """
 
 import os
@@ -10,8 +9,12 @@ assembler_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath
 
 
 class Settings:
-    def __init__(self, settings_data):
+    """
+    Object to store settings
+    """
 
+    def __init__(self, settings_data):
+        # Setting attributes
         self.project_root = None
         self.versioned_pages = None
         self.final_pages = None
@@ -24,14 +27,11 @@ class Settings:
     def set_attributes(self, settings_data):
         """
         Set class attributes from JSON file
-
-        :param settings_data:
-        :return:
         """
 
         self.project_root = settings_data['project_root']['string']
         self.jpeg_folder = settings_data['jpeg_folder']['string']
-        project_root = self.project_root  # Required for eval() to
+        project_root = self.project_root  # Required for eval() to expand strings
 
         for attribute in settings_data:
 
@@ -88,7 +88,8 @@ def set_settings(project_folder, versioned_pages, final_pages, pdf_files, sql_fi
                      "jpeg_folder": {
                         "string": "1rgsj0IsRrk1jKjO1WfpnuJISiDgwze-O",
                         "token":  None}
-}
+                     }
 
+    # Write new settings
     with open(settings_file, 'w') as file_content:
         json.dump(settings_data, file_content, indent=4)

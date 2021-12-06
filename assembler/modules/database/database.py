@@ -54,6 +54,10 @@ class Converter:
 
 
 class Page:
+    """
+    Class to represent a book page
+    """
+
     def __init__(self, page_number):
 
         self.id = None
@@ -63,6 +67,9 @@ class Page:
         self.description = ''
 
     def update_page(self):
+        """
+        Update page data
+        """
 
         connection = sqlite3.connect(settings.sql_file_path)
         cursor = connection.cursor()
@@ -86,6 +93,9 @@ class Page:
         connection.close()
 
     def get_published_version(self):
+        """
+        Get published version of the page
+        """
 
         connection = sqlite3.connect(settings.sql_file_path)
         cursor = connection.cursor()
@@ -103,6 +113,9 @@ class Page:
             return snapshot.version
 
     def get_sent_version(self):
+        """
+        Get sent version of the page
+        """
 
         connection = sqlite3.connect(settings.sql_file_path)
         cursor = connection.cursor()
@@ -120,6 +133,9 @@ class Page:
             return snapshot.version
 
     def get_published_snapshot_by_version(self, version):
+        """
+        Get published snapshot for the page by page version
+        """
 
         connection = sqlite3.connect(settings.sql_file_path)
         cursor = connection.cursor()
@@ -138,6 +154,9 @@ class Page:
             return Converter.convert_to_snapshot([snapshot_tuple])[0]
 
     def add_published_snapshot(self, version):
+        """
+        Add snapshot for the published page
+        """
 
         snapshot = VersionSnapshot(self.id, version)
 
@@ -162,6 +181,9 @@ class Page:
         return snapshot
 
     def add_sent_snapshot(self, version):
+        """
+        Add snapshot for the sent page
+        """
 
         snapshot = VersionSnapshot(self.id, version)
 
@@ -186,6 +208,9 @@ class Page:
         return snapshot
 
     def get_sent_snapshot_by_version(self, version):
+        """
+        Get sent snapshot for the page by page version
+        """
 
         connection = sqlite3.connect(settings.sql_file_path)
         cursor = connection.cursor()
@@ -217,11 +242,18 @@ class VersionSnapshot:
 
 
 class Book:
+    """
+    Class to represent a book object
+    """
+
     def __init__(self, page_files):
         self.page_files = page_files
         self.list_pages = []
 
     def parse_page_path(self, file_path):
+        """
+        Extract page number and page version from full file path to the poae
+        """
 
         file_path = file_path.replace('\\', '/')
         file_name = file_path.split('/')[-1]
@@ -245,6 +277,9 @@ class Book:
         return sorted(page_numbers)
 
     def get_page(self, page_id):
+        """
+        Get page data by page id
+        """
 
         connection = sqlite3.connect(settings.sql_file_path)
         cursor = connection.cursor()
@@ -261,6 +296,9 @@ class Book:
             return Converter.convert_to_page([page_tuple])[0]
 
     def get_page_by_number(self, page_number):
+        """
+        Get page data by page number
+        """
 
         connection = sqlite3.connect(settings.sql_file_path)
         cursor = connection.cursor()
@@ -277,6 +315,9 @@ class Book:
             return Converter.convert_to_page([page_tuple])[0]
 
     def add_page(self, page):
+        """
+        Add page to the database
+        """
 
         connection = sqlite3.connect(settings.sql_file_path)
         cursor = connection.cursor()
