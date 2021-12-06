@@ -7,7 +7,6 @@ import os
 import glob
 import webbrowser
 from shutil import copyfile
-from reportlab.pdfgen import canvas
 from PySide import QtCore, QtGui
 
 from ui import ui_assembler_main
@@ -16,59 +15,13 @@ from ui import ui_assembler_settings
 from modules.database import init
 from modules.database import database
 from modules.settings import settings
+from modules.pdf import pdf
+
+from pydrive.auth import GoogleAuth
+from pydrive.drive import GoogleDrive
 
 
 assembler_root = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
-
-
-# PDF
-def add_page_number(pdf_file, num, page):
-    """
-    Draw page number on each pdf page
-
-    :param pdf_file:
-    :param num:
-    :param page:
-    :return:
-    """
-
-    pos_x = 20
-    if num % 2 != 0:
-        pos_x = 2450
-
-    pdf_file.setFont('Helvetica', 60)
-    pdf_file.drawString(pos_x, 20, page.page_number)
-
-
-def generate_pdf(book, path_pdf):
-    """
-    Generate PDF file from book pages
-
-    :param book:
-    :param path_pdf:
-    :return:
-    """
-
-    size_x = 2598
-    size_y = 3366
-    pdf_file = canvas.Canvas(path_pdf, pagesize=(size_x, size_y))
-    pdf_file.setTitle('The Secret Code of Superheroes')
-
-    for num, page in enumerate(book.list_pages):
-
-        if not num == 0:  # Make next page
-            pdf_file.showPage()
-
-        version = page.get_published_version()
-
-        if not version:
-            continue
-
-        jpg_path = '{0}/{1}_{2}.jpg'.format(settings.versioned_pages, page.page_number, version)
-        pdf_file.drawImage(jpg_path, 0, 0, size_x, size_y)
-        add_page_number(pdf_file, num, page)
-
-    pdf_file.save()
 
 
 class SettingsUI(QtGui.QDialog, ui_assembler_settings.Ui_Settings):
@@ -209,12 +162,6 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         self.book_model = None
         self.current_version = None  # UI [ +/- ] counter for selected page
 
-        # # # Google Drive
-        # auth = GoogleAuth()
-        # auth.LocalWebserverAuth()
-        # self.google_drive = GoogleDrive(auth)
-        # self.jpeg_folder = '1ZTL3GjCTP0GeD-BBG-DhFNgOOGvTC4se'
-
         # Populate data
         self.init_ui()
 
@@ -233,7 +180,7 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
     # UI setup
     def init_ui(self):
 
-        page_files = glob.glob('{0}/*.jpg'.format(settings.versioned_pages))
+        page_files = glob.glob('{0}/*.jpg'.format(settings_data.versioned_pages))
         self.book = database.Book(page_files)
         self.book.get_pages()
 
@@ -257,7 +204,7 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         :return: string path to page file, None if JPG does not exists
         """
 
-        jpg_path = '{0}/{1}_{2}.jpg'.format(settings.versioned_pages, page_number, version)
+        jpg_path = '{0}/{1}_{2}.jpg'.format(settings_data.versioned_pages, page_number, version)
 
         if not os.path.exists(jpg_path):
             return
@@ -269,8 +216,8 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         Copy versioned files to "to_layout" folder without version
         """
 
-        file_path_src = '{0}/{1}_{2}.jpg'.format(settings.versioned_pages, page.page_number, published_version)
-        file_path_out = '{0}/{1}.jpg'.format(settings.final_pages, page.page_number)
+        file_path_src = '{0}/{1}_{2}.jpg'.format(settings_data.versioned_pages, page.page_number, published_version)
+        file_path_out = '{0}/{1}.jpg'.format(settings_data.final_pages, page.page_number)
 
         copyfile(file_path_src, file_path_out)
 
@@ -290,10 +237,18 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
 
         return file_path_out
 
-    def copy_file_to_drive(self, existing_pages, page, file_path_out):
+    def copy_file_to_drive(self, page, file_path_out):
         """
         Upload file to Google Drive
         """
+
+        # Google Drive Authentication
+        auth = GoogleAuth()
+        auth.LocalWebserverAuth()
+        google_drive = GoogleDrive(auth)
+
+        folder_token = {'q': "'{0}' in parents and trashed=false".format(settings_data.jpeg_folder)}
+        existing_pages = google_drive.ListFile(folder_token).GetList()
 
         # Delete existing file
         for existing_page in existing_pages:
@@ -301,8 +256,8 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
                 existing_page.Delete()
 
         # Upload new file
-        google_file = self.google_drive.CreateFile({'parents': [{'id': self.jpeg_folder}],
-                                                    'title': '{0}.jpg'.format(page.page_number)})
+        google_file = google_drive.CreateFile({'parents': [{'id': settings_data.jpeg_folder}],
+                                               'title': '{0}.jpg'.format(page.page_number)})
         google_file.SetContentFile(file_path_out)
         google_file.Upload()
 
@@ -436,8 +391,6 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         self.statusbar.showMessage('Copy files to final folder...')
 
         selected_pages = self.get_selected_page_numbers()
-        # folder_token = {'q': "'{0}' in parents and trashed=false".format(self.jpeg_folder)}
-        # existing_pages = self.google_drive.ListFile(folder_token).GetList()
 
         for page in self.book.list_pages:
 
@@ -455,10 +408,13 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
             if published_version == page.get_sent_version():
                 continue
 
+            # Copy file to local folder
             file_path_out = self.copy_file_locally(page, published_version)
-            # self.copy_file_to_drive(existing_pages, page, file_path_out)
 
-        # print '>> Files uploaded!'
+            # Upload file do google drive
+            if self.chbDrive.isChecked():
+                self.copy_file_to_drive(page, file_path_out)
+
         self.statusbar.showMessage('Copy complete!')
 
     def generate_pdf(self):
@@ -469,12 +425,12 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
         self.statusbar.showMessage('Building PDF file...')
 
         # Create a folder for PDF files:
-        if not os.path.exists(settings.pdf_files):
-            os.makedirs(settings.pdf_files)
+        if not os.path.exists(settings_data.pdf_files):
+            os.makedirs(settings_data.pdf_files)
 
         # Build pdf
-        path_pdf = '{0}/workbook_{1}.pdf'.format(settings.pdf_files, self.linPDFVersion.text())
-        generate_pdf(self.book, path_pdf)
+        path_pdf = '{0}/workbook_{1}.pdf'.format(settings_data.pdf_files, self.linPDFVersion.text())
+        pdf.generate_pdf(self.book, path_pdf)
 
         self.statusbar.showMessage('PDF file saved at {}'.format(path_pdf))
 
@@ -482,11 +438,11 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
 if __name__ == "__main__":
 
     # Read settings from JSON file
-    settings = settings.get_settings()
+    settings_data = settings.get_settings()
 
     # Init database
-    if not os.path.exists(settings.sql_file_path):
-        init.build_database(settings.sql_file_path)
+    if not os.path.exists(settings_data.sql_file_path):
+        init.build_database(settings_data.sql_file_path)
 
     app = QtGui.QApplication([])
     ketamine = Assembler()

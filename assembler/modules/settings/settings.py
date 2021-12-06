@@ -17,6 +17,7 @@ class Settings:
         self.final_pages = None
         self.pdf_files = None
         self.sql_file_path = None
+        self.jpeg_folder = None
 
         self.set_attributes(settings_data)
 
@@ -29,11 +30,12 @@ class Settings:
         """
 
         self.project_root = settings_data['project_root']['string']
+        self.jpeg_folder = settings_data['jpeg_folder']['string']
         project_root = self.project_root  # Required for eval() to
 
         for attribute in settings_data:
 
-            if attribute == 'project_root':
+            if attribute == 'project_root' or attribute == 'jpeg_folder':
                 continue
 
             evaluated_token = eval(settings_data[attribute]['token'])

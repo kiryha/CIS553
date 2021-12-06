@@ -3,3 +3,4 @@
 *.pyc
 assembler/data/data.db
 html
+assembler/client_secrets.json

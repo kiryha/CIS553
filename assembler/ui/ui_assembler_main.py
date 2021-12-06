@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'E:\projects\master\CS553\dev\assembler\ui\ui_assembler_main.ui'
 #
-# Created: Wed Nov 24 12:41:15 2021
+# Created: Sun Dec  5 19:33:00 2021
 #      by: pyside-uic 0.2.15 running on PySide 1.2.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -44,9 +44,12 @@ class Ui_Assembler(object):
         self.splitter_2.setOrientation(QtCore.Qt.Horizontal)
         self.splitter_2.setObjectName("splitter_2")
         self.chbSelected = QtGui.QCheckBox(self.splitter_2)
-        self.chbSelected.setMaximumSize(QtCore.QSize(100, 16777215))
+        self.chbSelected.setMaximumSize(QtCore.QSize(40, 16777215))
         self.chbSelected.setChecked(True)
         self.chbSelected.setObjectName("chbSelected")
+        self.chbDrive = QtGui.QCheckBox(self.splitter_2)
+        self.chbDrive.setMaximumSize(QtCore.QSize(40, 16777215))
+        self.chbDrive.setObjectName("chbDrive")
         self.btnSendPublished = QtGui.QPushButton(self.splitter_2)
         self.btnSendPublished.setObjectName("btnSendPublished")
         self.verticalLayout.addWidget(self.splitter_2)
@@ -54,7 +57,7 @@ class Ui_Assembler(object):
         self.splitter_3.setOrientation(QtCore.Qt.Horizontal)
         self.splitter_3.setObjectName("splitter_3")
         self.linPDFVersion = QtGui.QLineEdit(self.splitter_3)
-        self.linPDFVersion.setMaximumSize(QtCore.QSize(75, 16777215))
+        self.linPDFVersion.setMaximumSize(QtCore.QSize(85, 16777215))
         self.linPDFVersion.setAlignment(QtCore.Qt.AlignCenter)
         self.linPDFVersion.setObjectName("linPDFVersion")
         self.btnGeneratePDF = QtGui.QPushButton(self.splitter_3)
@@ -104,6 +107,7 @@ class Ui_Assembler(object):
         self.btnPublish.setText(QtGui.QApplication.translate("Assembler", "Publish Current Version", None, QtGui.QApplication.UnicodeUTF8))
         self.btnReload.setText(QtGui.QApplication.translate("Assembler", "Reload Pages", None, QtGui.QApplication.UnicodeUTF8))
         self.chbSelected.setText(QtGui.QApplication.translate("Assembler", "SEL", None, QtGui.QApplication.UnicodeUTF8))
+        self.chbDrive.setText(QtGui.QApplication.translate("Assembler", "GD", None, QtGui.QApplication.UnicodeUTF8))
         self.btnSendPublished.setText(QtGui.QApplication.translate("Assembler", "Send Published Versions", None, QtGui.QApplication.UnicodeUTF8))
         self.linPDFVersion.setText(QtGui.QApplication.translate("Assembler", "01", None, QtGui.QApplication.UnicodeUTF8))
         self.btnGeneratePDF.setText(QtGui.QApplication.translate("Assembler", "Generate PDF file", None, QtGui.QApplication.UnicodeUTF8))

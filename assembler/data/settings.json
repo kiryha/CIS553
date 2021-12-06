@@ -16,5 +16,9 @@
 
   "sql_file_path": {
     "string": "{}/data/database.db",
-    "token": "assembler_root"}
+    "token": "assembler_root"},
+
+  "jpeg_folder": {
+    "string": "1rgsj0IsRrk1jKjO1WfpnuJISiDgwze-O",
+    "token":  null}
 }
