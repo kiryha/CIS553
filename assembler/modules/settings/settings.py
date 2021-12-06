@@ -55,3 +55,40 @@ def get_settings():
         settings_data = json.load(file_content)
 
         return Settings(settings_data)
+
+
+def set_settings(project_folder, versioned_pages, final_pages, pdf_files, sql_file_path):
+    """
+    Edit settings
+    """
+
+    settings_file = '{}/data/settings.json'.format(assembler_root)
+    settings_src = get_settings()
+
+    settings_data = {"project_root": {
+                        "string": project_folder,
+                        "token": None},
+
+                     "versioned_pages": {
+                        "string": "{}".format(versioned_pages.replace(settings_src.project_root, '{}')),
+                        "token": "project_root"},
+
+                     "final_pages": {
+                        "string": "{}".format(final_pages.replace(settings_src.project_root, '{}')),
+                        "token": "project_root"},
+
+                     "pdf_files":  {
+                         "string": "{}".format(pdf_files.replace(settings_src.project_root, '{}')),
+                         "token": "project_root"},
+
+                     "sql_file_path": {
+                        "string": "{}".format(sql_file_path.replace(assembler_root, '{}')),
+                        "token": "assembler_root"},
+
+                     "jpeg_folder": {
+                        "string": "1rgsj0IsRrk1jKjO1WfpnuJISiDgwze-O",
+                        "token":  None}
+}
+
+    with open(settings_file, 'w') as file_content:
+        json.dump(settings_data, file_content, indent=4)

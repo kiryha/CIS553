@@ -31,26 +31,30 @@ class SettingsUI(QtGui.QDialog, ui_assembler_settings.Ui_Settings):
         self.setupUi(self)
         self.parent = parent
 
-        # # UI functionality
-        # self.btnConvert.clicked.connect(self.run_convert)
-        # self.btnConvert.clicked.connect(self.close)
+        # UI functionality
+        self.btnSaveSettings.clicked.connect(self.update_settings)
+        self.btnSaveSettings.clicked.connect(self.close)
 
     def showEvent(self, event):
 
-        # Add list of parts to UI
-        # self.listParts.setModel(self.model_parts)
-        pass
+        # Read settings and fill UI
+        self.linProjectFolder.setText(settings_data.project_root)
+        self.linVersionedPages.setText(settings_data.versioned_pages)
+        self.linFinalPages.setText(settings_data.final_pages)
+        self.linPDFfiles.setText(settings_data.pdf_files)
+        self.linSQLfile.setText(settings_data.sql_file_path)
 
-    def run_convert(self):
+    def update_settings(self):
+        """
+        Save edited strings to settings.json
+        :return:
+        """
 
-        # Get list of FBX paths from UI selection
-        selected_fbx_paths = []
-        model_indexes = self.listParts.selectedIndexes()
-        for model_index in model_indexes:
-            path = model_index.data(QtCore.Qt.UserRole + 3)
-            selected_fbx_paths.append(path)
-
-        self.parent.convert_selected_asset_parts(selected_fbx_paths)
+        self.parent.update_settings(self.linProjectFolder.text(),
+                                    self.linVersionedPages.text(),
+                                    self.linFinalPages.text(),
+                                    self.linPDFfiles.text(),
+                                    self.linSQLfile.text())
 
 
 class AlignDelegate(QtGui.QItemDelegate):
@@ -276,6 +280,19 @@ class Assembler(QtGui.QMainWindow, ui_assembler_main.Ui_Assembler):
             selected_pages.append(page_number)
 
         return selected_pages
+
+    def update_settings(self, project_folder, versioned_pages, final_pages, pdf_files, sql_file_path):
+        """
+        Save settings edited by user to settings.json
+
+        :param project_folder:
+        :param versioned_pages:
+        :param final_pages:
+        :param pdf_files:
+        :param sql_file_path:
+        :return:
+        """
+        settings.set_settings(project_folder, versioned_pages, final_pages, pdf_files, sql_file_path)
 
     # UI calls
     def edit_settings(self):

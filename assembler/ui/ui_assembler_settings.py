@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'E:\projects\master\CS553\dev\assembler\ui\ui_assembler_settings.ui'
 #
-# Created: Wed Nov 24 12:59:48 2021
+# Created: Sun Dec  5 20:05:03 2021
 #      by: pyside-uic 0.2.15 running on PySide 1.2.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -65,10 +65,10 @@ class Ui_Settings(object):
         self.linSQLfile = QtGui.QLineEdit(self.splitter_4)
         self.linSQLfile.setObjectName("linSQLfile")
         self.verticalLayout.addWidget(self.splitter_4)
-        self.pushButton = QtGui.QPushButton(Settings)
-        self.pushButton.setMinimumSize(QtCore.QSize(0, 35))
-        self.pushButton.setObjectName("pushButton")
-        self.verticalLayout.addWidget(self.pushButton)
+        self.btnSaveSettings = QtGui.QPushButton(Settings)
+        self.btnSaveSettings.setMinimumSize(QtCore.QSize(0, 35))
+        self.btnSaveSettings.setObjectName("btnSaveSettings")
+        self.verticalLayout.addWidget(self.btnSaveSettings)
 
         self.retranslateUi(Settings)
         QtCore.QMetaObject.connectSlotsByName(Settings)
@@ -80,5 +80,5 @@ class Ui_Settings(object):
         self.label_2.setText(QtGui.QApplication.translate("Settings", "Final Pages", None, QtGui.QApplication.UnicodeUTF8))
         self.label_3.setText(QtGui.QApplication.translate("Settings", "PDF files", None, QtGui.QApplication.UnicodeUTF8))
         self.label_4.setText(QtGui.QApplication.translate("Settings", "SQL file", None, QtGui.QApplication.UnicodeUTF8))
-        self.pushButton.setText(QtGui.QApplication.translate("Settings", "Save Settings", None, QtGui.QApplication.UnicodeUTF8))
+        self.btnSaveSettings.setText(QtGui.QApplication.translate("Settings", "Save Settings", None, QtGui.QApplication.UnicodeUTF8))
 
